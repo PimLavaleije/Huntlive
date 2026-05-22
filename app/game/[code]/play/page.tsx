@@ -16,6 +16,7 @@ import { Card } from '@/components/ui/Card'
 import { RoleBadge } from '@/components/RoleBadge'
 import type { Location, Player, PlayerRole } from '@/types'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { LangToggle } from '@/components/LangToggle'
 
 export default function PlayPage() {
   const router = useRouter()
@@ -487,6 +488,7 @@ export default function PlayPage() {
       {/* ── BOTTOM PANEL (collapsible) ── */}
       {panelOpen && (
         <div className="px-4 py-3 flex flex-col gap-3 max-h-[45vh] overflow-y-auto" style={{ background: '#000000', borderTop: '1px solid #1a2540' }}>
+          <div className="flex justify-end"><LangToggle /></div>
 
           {/* Fugitive info */}
           {isFugitive && game.status === 'active' && (

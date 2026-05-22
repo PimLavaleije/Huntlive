@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { LangToggle } from '@/components/LangToggle'
 
 type Step = 'settings' | 'identity'
 
@@ -88,6 +89,7 @@ export default function CreateGamePage() {
           {t('back')}
         </button>
         <h1 className="font-black tracking-widest uppercase text-white text-sm">{t('create_title')}</h1>
+        <div className="ml-auto"><LangToggle /></div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-6 max-w-lg mx-auto w-full">

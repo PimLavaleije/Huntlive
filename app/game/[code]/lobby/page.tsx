@@ -9,6 +9,7 @@ import { PlayerList } from '@/components/PlayerList'
 import { GameStatusBanner } from '@/components/GameStatusBanner'
 import { RoleBadge } from '@/components/RoleBadge'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { LangToggle } from '@/components/LangToggle'
 import type { Player } from '@/types'
 
 export default function LobbyPage() {
@@ -105,7 +106,10 @@ export default function LobbyPage() {
       <div className="px-4 py-4" style={{ borderBottom: '1px solid #1a2540' }}>
         <div className="flex items-center justify-between">
           <h1 className="font-black tracking-widest uppercase text-white text-sm">{game.name}</h1>
-          {currentPlayer && <RoleBadge role={currentPlayer.role} />}
+          <div className="flex items-center gap-2">
+            <LangToggle />
+            {currentPlayer && <RoleBadge role={currentPlayer.role} />}
+          </div>
         </div>
       </div>
 

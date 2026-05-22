@@ -4,6 +4,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import { haversineDistance } from '@/lib/distance'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { LangToggle } from '@/components/LangToggle'
 import type { Game, Player, Location } from '@/types'
 
 interface CaptureEvent { id: string; hunter_player_id: string; confirmed: boolean; created_at: string }
@@ -110,6 +111,7 @@ export default function EndPage() {
 
       {/* ── HERO ── */}
       <div className="relative flex flex-col items-center pt-10 pb-6 px-4 text-center overflow-hidden">
+        <div className="absolute top-3 right-4 z-10"><LangToggle /></div>
         {/* City map background */}
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 375 280" preserveAspectRatio="xMidYMid slice" style={{ opacity: 0.3 }}>
           {[40,85,130,175,220].map(y => <line key={y} x1="0" y1={y} x2="375" y2={y} stroke={accent} strokeWidth="0.7" opacity="0.35" />)}

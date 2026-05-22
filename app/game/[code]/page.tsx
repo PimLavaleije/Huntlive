@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { GameStatusBanner } from '@/components/GameStatusBanner'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { LangToggle } from '@/components/LangToggle'
 
 export default function JoinGamePage() {
   const router = useRouter()
@@ -85,6 +86,7 @@ export default function JoinGamePage() {
           {t('home')}
         </button>
         <h1 className="font-black tracking-widest font-mono text-white">{code}</h1>
+        <div className="ml-auto"><LangToggle /></div>
       </div>
 
       <div className="flex-1 flex flex-col justify-center px-5 max-w-sm mx-auto w-full gap-5 py-8">

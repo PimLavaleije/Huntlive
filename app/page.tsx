@@ -3,10 +3,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { LangToggle } from '@/components/LangToggle'
 
 export default function HomePage() {
   const router = useRouter()
-  const { t, lang, setLang } = useLanguage()
+  const { t } = useLanguage()
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
 
@@ -21,26 +22,7 @@ export default function HomePage() {
 
       {/* Language toggle */}
       <div className="flex justify-end px-4 pt-3">
-        <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #1a2540' }}>
-          <button
-            onClick={() => setLang('nl')}
-            className="px-3 py-1.5 text-xs font-bold tracking-widest transition-colors"
-            style={lang === 'nl'
-              ? { background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', color: '#fff' }
-              : { background: '#0d1018', color: '#6b7280' }}
-          >
-            NL
-          </button>
-          <button
-            onClick={() => setLang('en')}
-            className="px-3 py-1.5 text-xs font-bold tracking-widest transition-colors"
-            style={lang === 'en'
-              ? { background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', color: '#fff' }
-              : { background: '#0d1018', color: '#6b7280' }}
-          >
-            EN
-          </button>
-        </div>
+        <LangToggle />
       </div>
 
       {/* ── HERO ── */}
