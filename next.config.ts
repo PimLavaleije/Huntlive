@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Leaflet uses browser-only APIs; exclude from server-side bundling
+  serverExternalPackages: ['leaflet'],
 };
 
 export default nextConfig;

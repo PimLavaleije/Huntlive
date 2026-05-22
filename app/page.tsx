@@ -1,65 +1,84 @@
-import Image from "next/image";
+'use client'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 
-export default function Home() {
+export default function HomePage() {
+  const router = useRouter()
+  const [code, setCode] = useState('')
+  const [nameInput, setNameInput] = useState('')
+  const [joiningError, setJoiningError] = useState('')
+
+  const handleJoin = () => {
+    if (!code.trim()) { setJoiningError('Voer een gamecode in'); return }
+    router.push(`/game/${code.trim().toUpperCase()}`)
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="flex flex-col min-h-svh bg-gray-900 text-white">
+      {/* Hero */}
+      <div className="flex flex-col items-center justify-center flex-1 px-5 py-16 text-center">
+        <div className="mb-6 text-6xl">🎯</div>
+        <h1 className="text-4xl font-black mb-2 tracking-tight">Chase Zone</h1>
+        <p className="text-gray-400 text-lg max-w-sm">
+          Echte GPS-jacht in de echte wereld. Eén voortvluchtige, meerdere jagers.
+        </p>
+
+        {/* How it works */}
+        <div className="grid grid-cols-3 gap-3 mt-8 w-full max-w-sm text-sm">
+          <div className="bg-gray-800 rounded-xl p-3 border border-gray-700">
+            <div className="text-2xl mb-1">🏃</div>
+            <div className="text-orange-400 font-semibold">Voorsprong</div>
+            <div className="text-gray-400 text-xs mt-1">Boef pakt een vluchtvlucht</div>
+          </div>
+          <div className="bg-gray-800 rounded-xl p-3 border border-gray-700">
+            <div className="text-2xl mb-1">📍</div>
+            <div className="text-blue-400 font-semibold">GPS Pings</div>
+            <div className="text-gray-400 text-xs mt-1">Jagers krijgen locatie-updates</div>
+          </div>
+          <div className="bg-gray-800 rounded-xl p-3 border border-gray-700">
+            <div className="text-2xl mb-1">🏆</div>
+            <div className="text-green-400 font-semibold">Win of ontsnap</div>
+            <div className="text-gray-400 text-xs mt-1">Vang of overleef de tijd</div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        {/* Actions */}
+        <div className="flex flex-col gap-4 mt-10 w-full max-w-sm">
+          <Button size="xl" variant="primary" onClick={() => router.push('/create')} className="w-full">
+            Nieuw spel aanmaken
+          </Button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-700" />
+            </div>
+            <div className="relative flex justify-center text-xs text-gray-500">
+              <span className="bg-gray-900 px-3">of join een bestaand spel</span>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Input
+              value={code}
+              onChange={(e) => { setCode(e.target.value.toUpperCase()); setJoiningError('') }}
+              placeholder="Gamecode (bijv. AB3X9Z)"
+              className="flex-1 uppercase tracking-widest font-mono"
+              maxLength={6}
+              error={joiningError}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <Button onClick={handleJoin} disabled={!code.trim()} className="shrink-0">
+              Join
+            </Button>
+          </div>
         </div>
-      </main>
-    </div>
-  );
+      </div>
+
+      {/* Footer */}
+      <footer className="text-center py-6 text-xs text-gray-600">
+        Chase Zone — Real-Life GPS Chase Game
+      </footer>
+    </main>
+  )
 }
