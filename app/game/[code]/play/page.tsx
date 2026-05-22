@@ -15,7 +15,7 @@ import { CaptureButton } from '@/components/CaptureButton'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { RoleBadge } from '@/components/RoleBadge'
-import type { Location } from '@/types'
+import type { Location, Player } from '@/types'
 
 export default function PlayPage() {
   const router = useRouter()
@@ -26,8 +26,12 @@ export default function PlayPage() {
   const [notification, setNotification] = useState<string | null>(null)
   const [panelOpen, setPanelOpen] = useState(true)
   const [allPlayerLocations, setAllPlayerLocations] = useState<Map<string, { lat: number; lng: number }>>(new Map())
+  const [hunterLocations, setHunterLocations] = useState<Map<string, { lat: number; lng: number }>>(new Map())
+  const [phaseModal, setPhaseModal] = useState<{ title: string; body: string } | null>(null)
   const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSnapshotRef = useRef<number>(0)
+  const prevGameStatusRef = useRef<string | null>(null)
+  const playersRef = useRef<Player[]>([])
 
   useEffect(() => {
     const id = sessionStorage.getItem(`player_${code}`)
@@ -56,6 +60,9 @@ export default function PlayPage() {
     if (game?.status === 'waiting') router.push(`/game/${code}/lobby`)
   }, [game?.status, code, router])
 
+  // Keep playersRef current for use inside intervals
+  useEffect(() => { playersRef.current = players }, [players])
+
   // Notify hunters of new location
   const prevLocationRef = useRef<Location | null>(null)
   useEffect(() => {
@@ -65,6 +72,52 @@ export default function PlayPage() {
       prevLocationRef.current = latestFugitiveLocation
     }
   }, [latestFugitiveLocation, isHunter, showNotification])
+
+  // Fetch static snapshot of hunter positions (for fugitive view)
+  const fetchHunterSnapshot = useCallback(async (gameId: string) => {
+    const hunterIds = playersRef.current
+      .filter((p) => p.role === 'hunter' || p.role === 'admin')
+      .map((p) => p.id)
+    if (hunterIds.length === 0) return
+    const { data } = await supabase
+      .from('locations')
+      .select('*')
+      .eq('game_id', gameId)
+      .in('player_id', hunterIds)
+      .order('created_at', { ascending: false })
+      .limit(hunterIds.length * 5)
+    if (!data) return
+    const latest = new Map<string, { lat: number; lng: number }>()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data.forEach((loc: any) => {
+      if (!latest.has(loc.player_id)) latest.set(loc.player_id, { lat: loc.latitude, lng: loc.longitude })
+    })
+    setHunterLocations(latest)
+  }, [])
+
+  // Headstart → active: show modal and mutual position reveal
+  useEffect(() => {
+    if (!game || !currentPlayer) return
+    const prev = prevGameStatusRef.current
+    prevGameStatusRef.current = game.status
+    if (prev !== 'headstart' || game.status !== 'active') return
+
+    if (isFugitive) {
+      setPhaseModal({
+        title: '🚨 Jagers losgelaten!',
+        body: 'De voorsprong is voorbij. Jagers weten nu waar je bent. Je ziet hun startlocaties op de kaart.',
+      })
+      fetchHunterSnapshot(game.id)
+    } else if (isAdmin) {
+      setPhaseModal({ title: '🏃 Jacht begonnen!', body: 'De voorsprong is voorbij. Het spel is actief.' })
+    } else {
+      setPhaseModal({
+        title: '🏃 Jacht begonnen!',
+        body: `De boef heeft ${game.headstart_minutes} min. voorsprong gehad. Je ziet zijn locatie op de kaart.`,
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.status])
 
   // Save location every 8 seconds for all active players
   useEffect(() => {
@@ -80,7 +133,8 @@ export default function PlayPage() {
           Date.now() - lastSnapshotRef.current > 30_000
         if (shouldBeVisible) {
           lastSnapshotRef.current = Date.now()
-          showNotification('📡 Je locatie is gedeeld met de jagers!')
+          showNotification('📡 Locaties gedeeld — jagers zien jou, jij ziet de jagers!')
+          fetchHunterSnapshot(game.id)
         }
       }
       await saveLocation(game.id, playerId, position.latitude, position.longitude, position.accuracy, shouldBeVisible)
@@ -207,6 +261,11 @@ export default function PlayPage() {
     })
   } else if (isHunter && latestFugitiveLocation) {
     mapMarkers.push({ lat: latestFugitiveLocation.latitude, lng: latestFugitiveLocation.longitude, type: 'fugitive' as const, label: `Boef – ${formatRelativeTime(latestFugitiveLocation.created_at)}` })
+  } else if (isFugitive) {
+    hunterLocations.forEach((loc, pid) => {
+      const player = players.find((p) => p.id === pid)
+      mapMarkers.push({ lat: loc.lat, lng: loc.lng, type: 'hunter' as const, label: player?.user_name ?? 'Jager' })
+    })
   }
 
   const mapCenter: [number, number] | undefined = position
@@ -280,6 +339,25 @@ export default function PlayPage() {
           {panelOpen ? '▼ Verberg acties' : '▲ Toon acties'}
         </button>
       </div>
+
+      {/* ── PHASE TRANSITION MODAL ── */}
+      {phaseModal && (
+        <div
+          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/75 backdrop-blur-sm"
+          onClick={() => setPhaseModal(null)}
+        >
+          <div className="bg-gray-800 border border-gray-600 rounded-2xl p-6 max-w-sm mx-4 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <p className="text-2xl font-bold text-white mb-2">{phaseModal.title}</p>
+            <p className="text-gray-300 text-sm mb-5">{phaseModal.body}</p>
+            <button
+              className="bg-orange-600 hover:bg-orange-500 text-white font-semibold px-6 py-2.5 rounded-xl transition-colors"
+              onClick={() => setPhaseModal(null)}
+            >
+              Begrepen
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── BOTTOM PANEL (collapsible) ── */}
       {panelOpen && (
