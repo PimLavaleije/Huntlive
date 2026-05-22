@@ -103,10 +103,12 @@ export function MapView({
         const size = marker.isSelf ? 18 : marker.type === 'fugitive' ? 20 : 16
 
         const html = marker.isSelf
-          ? `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 0 3px ${color}44,0 2px 8px rgba(0,0,0,0.4)"></div>`
+          ? `<div style="position:relative;width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><div class="marker-pulse" style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color};"></div><div style="position:relative;width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 0 3px ${color}44,0 2px 8px rgba(0,0,0,0.4)"></div></div>`
           : `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 8px rgba(0,0,0,0.5)"></div>`
 
-        const icon = L.divIcon({ html, className: '', iconSize: [size, size], iconAnchor: [size / 2, size / 2] })
+        const iconSize: [number, number] = marker.isSelf ? [40, 40] : [size, size]
+        const iconAnchor: [number, number] = marker.isSelf ? [20, 20] : [size / 2, size / 2]
+        const icon = L.divIcon({ html, className: '', iconSize, iconAnchor })
         const m = L.marker([marker.lat, marker.lng], { icon })
         if (marker.label) m.bindPopup(marker.label)
         m.addTo(mapInstanceRef.current)
@@ -154,7 +156,7 @@ export function MapView({
   return (
     <>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-      <style>{`.leaflet-control-zoom { display: none; } @media (min-width: 768px) { .leaflet-control-zoom { display: block; } }`}</style>
+      <style>{`.leaflet-control-zoom { display: none; } @media (min-width: 768px) { .leaflet-control-zoom { display: block; } } @keyframes marker-pulse { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(2.8); opacity: 0; } } .marker-pulse { animation: marker-pulse 3s ease-out infinite; }`}</style>
       <div className={`relative ${className ?? 'w-full h-64 rounded-2xl overflow-hidden'}`}>
         <div ref={mapRef} className="w-full h-full" />
 
