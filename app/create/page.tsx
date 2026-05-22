@@ -10,12 +10,20 @@ import { LangToggle } from '@/components/LangToggle'
 
 type Step = 'settings' | 'identity'
 
+const PRESETS = [
+  { label: 'Makkelijk', duration_minutes: 15,  headstart_minutes: 2,  location_interval_minutes: 2  },
+  { label: 'Normaal',   duration_minutes: 60,  headstart_minutes: 5,  location_interval_minutes: 5  },
+  { label: 'Moeilijk',  duration_minutes: 120, headstart_minutes: 10, location_interval_minutes: 10 },
+  { label: 'Locht',     duration_minutes: 240, headstart_minutes: 20, location_interval_minutes: 10 },
+] as const
+
 export default function CreateGamePage() {
   const router = useRouter()
   const { t } = useLanguage()
   const [step, setStep] = useState<Step>('settings')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [activePreset, setActivePreset] = useState<number | null>(1)
 
   const [settings, setSettings] = useState({
     name: '',
@@ -95,6 +103,29 @@ export default function CreateGamePage() {
       <div className="flex-1 overflow-y-auto px-4 py-6 max-w-lg mx-auto w-full">
         {step === 'settings' ? (
           <div className="flex flex-col gap-5">
+            <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid #1a2540' }}>
+              {PRESETS.map((p, i) => (
+                <button
+                  key={p.label}
+                  onClick={() => {
+                    setActivePreset(i)
+                    setSettings((s) => ({
+                      ...s,
+                      duration_minutes: p.duration_minutes,
+                      headstart_minutes: p.headstart_minutes,
+                      location_interval_minutes: p.location_interval_minutes,
+                    }))
+                  }}
+                  className="flex-1 py-2.5 text-xs font-bold tracking-widest uppercase transition-colors"
+                  style={activePreset === i
+                    ? { background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', color: '#fff' }
+                    : { background: '#0d1018', color: '#6b7280' }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
             <Card>
               <h2 className="font-black tracking-widest uppercase text-xs text-gray-400 mb-4">{t('create_settings')}</h2>
               <div className="flex flex-col gap-4">
@@ -111,7 +142,7 @@ export default function CreateGamePage() {
                     min={5}
                     max={240}
                     value={settings.duration_minutes}
-                    onChange={(e) => setSettings((s) => ({ ...s, duration_minutes: Number(e.target.value) }))}
+                    onChange={(e) => { setActivePreset(null); setSettings((s) => ({ ...s, duration_minutes: Number(e.target.value) })) }}
                   />
                   <Input
                     label={t('create_headstart')}
@@ -119,7 +150,7 @@ export default function CreateGamePage() {
                     min={1}
                     max={30}
                     value={settings.headstart_minutes}
-                    onChange={(e) => setSettings((s) => ({ ...s, headstart_minutes: Number(e.target.value) }))}
+                    onChange={(e) => { setActivePreset(null); setSettings((s) => ({ ...s, headstart_minutes: Number(e.target.value) })) }}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -129,7 +160,7 @@ export default function CreateGamePage() {
                     min={1}
                     max={30}
                     value={settings.location_interval_minutes}
-                    onChange={(e) => setSettings((s) => ({ ...s, location_interval_minutes: Number(e.target.value) }))}
+                    onChange={(e) => { setActivePreset(null); setSettings((s) => ({ ...s, location_interval_minutes: Number(e.target.value) })) }}
                     hint={t('create_locationIntervalHint')}
                   />
                   <Input
