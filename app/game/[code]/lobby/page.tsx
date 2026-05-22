@@ -18,6 +18,7 @@ export default function LobbyPage() {
   const [playerId, setPlayerId] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [locationStatus, setLocationStatus] = useState<'checking' | 'granted' | 'denied' | 'prompt' | 'unavailable'>('checking')
 
   const { game, players, loading, error } = useRealtimeGame(code, playerId)
 
@@ -26,6 +27,28 @@ export default function LobbyPage() {
     if (!id) { router.replace(`/game/${code}`); return }
     setPlayerId(id)
   }, [code, router])
+
+  useEffect(() => {
+    if (!navigator.geolocation) { setLocationStatus('unavailable'); return }
+    if (!navigator.permissions) {
+      navigator.geolocation.getCurrentPosition(
+        () => setLocationStatus('granted'),
+        () => setLocationStatus('denied'),
+      )
+      return
+    }
+    navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+      setLocationStatus(result.state as 'granted' | 'denied' | 'prompt')
+      result.onchange = () => setLocationStatus(result.state as 'granted' | 'denied' | 'prompt')
+    })
+  }, [])
+
+  const requestLocation = () => {
+    navigator.geolocation.getCurrentPosition(
+      () => setLocationStatus('granted'),
+      () => setLocationStatus('denied'),
+    )
+  }
 
   useEffect(() => {
     if (game?.status === 'headstart' || game?.status === 'active') {
@@ -127,6 +150,33 @@ export default function LobbyPage() {
             </div>
           )}
         </Card>
+
+        {/* Location permission warning */}
+        {locationStatus === 'denied' && (
+          <div className="rounded-2xl px-4 py-3 flex flex-col gap-1" style={{ background: '#1c0a0a', border: '1px solid #ef4444' }}>
+            <p className="text-red-400 font-black text-sm uppercase tracking-widest">📵 Locatie geblokkeerd</p>
+            <p className="text-red-300 text-xs">Je hebt locatietoegang geweigerd. Ga naar je browserinstellingen en sta locatie toe voor deze site, en laad de pagina opnieuw.</p>
+          </div>
+        )}
+        {(locationStatus === 'prompt' || locationStatus === 'checking') && (
+          <div className="rounded-2xl px-4 py-3 flex flex-col gap-2" style={{ background: '#0d1a0a', border: '1px solid #f97316' }}>
+            <p className="text-orange-400 font-black text-sm uppercase tracking-widest">📍 Locatie vereist</p>
+            <p className="text-orange-300 text-xs">Het spel heeft jouw GPS-locatie nodig. Geef toegang voordat het spel begint.</p>
+            <button
+              onClick={requestLocation}
+              className="text-xs font-black tracking-widest uppercase text-white rounded-xl px-4 py-2 transition-colors"
+              style={{ background: 'linear-gradient(135deg, #92400e, #d97706)', border: '1px solid #f97316' }}
+            >
+              Locatie inschakelen →
+            </button>
+          </div>
+        )}
+        {locationStatus === 'unavailable' && (
+          <div className="rounded-2xl px-4 py-3" style={{ background: '#1c0a0a', border: '1px solid #ef4444' }}>
+            <p className="text-red-400 font-black text-sm uppercase tracking-widest">❌ GPS niet beschikbaar</p>
+            <p className="text-red-300 text-xs mt-1">Je apparaat ondersteunt geen GPS. Je kunt het spel niet meespelen.</p>
+          </div>
+        )}
 
         {/* Players */}
         <Card>
