@@ -74,22 +74,25 @@ export function useRealtimeGame(gameCode: string, playerId: string | null): UseR
     fetchFugitiveLocation(game.id)
   }, [game, fetchPlayers, fetchFugitiveLocation])
 
-  // Realtime subscriptions
+  // Realtime subscriptions — depend only on game.id so the channel isn't torn
+  // down and rebuilt on every game-state update (which creates brief gaps where
+  // events can be missed).
   useEffect(() => {
-    if (!game) return
+    if (!game?.id) return
+    const gid = game.id
 
     const channel = supabase
-      .channel(`game-${game.id}`)
+      .channel(`game-${gid}`)
       // Game status changes
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${game.id}` }, (payload) => {
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gid}` }, (payload) => {
         setGame(payload.new as Game)
       })
       // Players joining / updating
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `game_id=eq.${game.id}` }, () => {
-        fetchPlayers(game.id)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `game_id=eq.${gid}` }, () => {
+        fetchPlayers(gid)
       })
       // New visible fugitive location
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'locations', filter: `game_id=eq.${game.id}` }, (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'locations', filter: `game_id=eq.${gid}` }, (payload) => {
         const loc = payload.new as Location
         if (loc.visible_to_hunters) {
           setLatestFugitiveLocation(loc)
@@ -99,7 +102,16 @@ export function useRealtimeGame(gameCode: string, playerId: string | null): UseR
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [game, fetchPlayers])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.id])
+
+  // Poll game status every 5 s as a fallback for missed realtime events
+  useEffect(() => {
+    if (!game?.id) return
+    if (game.status !== 'headstart' && game.status !== 'active') return
+    const id = setInterval(fetchGame, 5000)
+    return () => clearInterval(id)
+  }, [game?.id, game?.status, fetchGame])
 
   return {
     game,
