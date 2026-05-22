@@ -15,7 +15,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-svh flex flex-col" style={{ background: '#080c1a', color: '#fff' }}>
+    <main className="min-h-svh flex flex-col" style={{ background: '#000000', color: '#fff' }}>
 
       {/* ── HERO ── */}
       <div className="flex flex-col items-center px-5 pt-6 pb-2 text-center">
