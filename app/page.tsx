@@ -18,16 +18,8 @@ export default function HomePage() {
     <main className="min-h-svh flex flex-col" style={{ background: '#080c1a', color: '#fff' }}>
 
       {/* ── HERO ── */}
-      <div className="flex flex-col items-center px-5 pt-10 pb-2 text-center">
-        <Image src="/logo.png" alt="Chase Zone logo" width={160} height={160} className="object-contain" priority />
-        <h1 className="mt-4 font-black tracking-[0.1em]" style={{ fontSize: '3rem', lineHeight: 1 }}>
-          <span style={{ color: '#ef4444' }}>CHASE</span>{' '}
-          <span style={{ color: '#3b82f6' }}>ZONE</span>
-        </h1>
-        <p className="mt-3 tracking-[0.22em] uppercase" style={{ fontSize: '0.65rem', color: '#6b7280' }}>
-          De <span style={{ color: '#f97316', fontWeight: 700 }}>jacht</span> is echt. Jij bent het{' '}
-          <span style={{ color: '#60a5fa', fontWeight: 700 }}>doel</span>.
-        </p>
+      <div className="flex flex-col items-center px-5 pt-6 pb-2 text-center">
+        <Image src="/logo.png" alt="Chase Zone logo" width={280} height={280} className="object-contain w-full max-w-xs" priority />
       </div>
 
       {/* ── MAP ILLUSTRATION ── */}
