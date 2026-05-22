@@ -35,24 +35,24 @@ export default function HomePage() {
       </div>
 
       {/* ── FEATURE CARDS ── */}
-      <div className="grid grid-cols-3 gap-3 px-4" style={{ marginTop: -8 }}>
+      <div className="grid grid-cols-3 gap-2 px-3" style={{ marginTop: -8 }}>
 
-        <div className="flex flex-col items-center text-center px-2 py-4 rounded-2xl" style={{ background: '#0e1425', border: '1px solid #1a2540' }}>
+        <div className="flex flex-col items-center text-center px-1.5 pt-4 pb-3 rounded-2xl" style={{ background: '#0d1018', border: '1px solid #2a1a1a' }}>
           <RunnerIcon />
-          <span className="mt-2 font-black tracking-wide" style={{ fontSize: '0.65rem', color: '#f97316', lineHeight: 1.2 }}>VOORSPRONG</span>
-          <span className="mt-1.5 leading-tight" style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Boef pakt een vluchtvlucht</span>
+          <span className="mt-2 font-black tracking-wider uppercase" style={{ fontSize: '0.62rem', color: '#ef4444', lineHeight: 1.2 }}>VOORSPRONG</span>
+          <span className="mt-1 leading-tight uppercase" style={{ fontSize: '0.55rem', color: '#9ca3af' }}>Boef pakt een vluchtvlucht</span>
         </div>
 
-        <div className="flex flex-col items-center text-center px-2 py-4 rounded-2xl" style={{ background: '#0e1425', border: '1px solid #1a2540' }}>
+        <div className="flex flex-col items-center text-center px-1.5 pt-4 pb-3 rounded-2xl" style={{ background: '#0d1018', border: '1px solid #0f1e35' }}>
           <PinIcon />
-          <span className="mt-2 font-black tracking-wide" style={{ fontSize: '0.65rem', color: '#3b82f6', lineHeight: 1.2 }}>GPS PINGS</span>
-          <span className="mt-1.5 leading-tight" style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Jagers krijgen locatie-updates</span>
+          <span className="mt-2 font-black tracking-wider uppercase" style={{ fontSize: '0.62rem', color: '#3b82f6', lineHeight: 1.2 }}>GPS PINGS</span>
+          <span className="mt-1 leading-tight uppercase" style={{ fontSize: '0.55rem', color: '#9ca3af' }}>Jagers krijgen locatie-updates</span>
         </div>
 
-        <div className="flex flex-col items-center text-center px-2 py-4 rounded-2xl" style={{ background: '#0e1425', border: '1px solid #1a2540' }}>
+        <div className="flex flex-col items-center text-center px-1.5 pt-4 pb-3 rounded-2xl" style={{ background: '#0d1018', border: '1px solid #0f2018' }}>
           <TrophyIcon />
-          <span className="mt-2 font-black tracking-wide" style={{ fontSize: '0.65rem', color: '#22c55e', lineHeight: 1.2 }}>WIN OF{'\n'}ONTSNAP</span>
-          <span className="mt-1.5 leading-tight" style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Vang of overleef de tijd</span>
+          <span className="mt-2 font-black tracking-wider uppercase" style={{ fontSize: '0.62rem', color: '#22c55e', lineHeight: 1.2 }}>WIN OF ONTSNAP</span>
+          <span className="mt-1 leading-tight uppercase" style={{ fontSize: '0.55rem', color: '#9ca3af' }}>Vang of overleef de tijd</span>
         </div>
 
       </div>
@@ -61,15 +61,17 @@ export default function HomePage() {
       <div className="px-4 mt-6">
         <button
           onClick={() => router.push('/create')}
-          className="w-full flex items-center justify-center gap-3 rounded-2xl font-black tracking-widest text-white transition-transform active:scale-[0.98]"
+          className="w-full flex items-center justify-between rounded-xl font-black tracking-widest text-white transition-transform active:scale-[0.98]"
           style={{
-            padding: '1rem 1.5rem',
-            fontSize: '0.95rem',
-            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #1d4ed8 100%)',
-            boxShadow: '0 0 40px rgba(37,99,235,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
+            padding: '1.05rem 1.5rem',
+            fontSize: '1rem',
+            background: 'linear-gradient(135deg, #6b0000 0%, #b91c1c 45%, #991b1b 100%)',
+            border: '1px solid #ef4444',
+            boxShadow: '0 0 30px rgba(239,68,68,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}
         >
-          NIEUW SPEL AANMAKEN <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>→</span>
+          <span>NIEUW SPEL AANMAKEN</span>
+          <span style={{ color: '#ef4444', fontSize: '1.4rem', lineHeight: 1, fontWeight: 900 }}>›</span>
         </button>
       </div>
 
@@ -83,30 +85,31 @@ export default function HomePage() {
           <div className="flex-1 h-px" style={{ background: '#1a2540' }} />
         </div>
         <div className="flex gap-2">
-          <input
-            value={code}
-            onChange={(e) => { setCode(e.target.value.toUpperCase()); setError('') }}
-            onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-            placeholder="GAMECODE (BIJV. AB12CD)"
-            maxLength={6}
-            className="flex-1 font-mono tracking-widest text-white placeholder-gray-600 focus:outline-none focus:border-blue-600 transition-colors"
-            style={{
-              background: '#0b1120',
-              border: '1px solid #1e2d45',
-              borderRadius: '0.75rem',
-              padding: '0.875rem 1rem',
-              fontSize: '0.8rem',
-            }}
-          />
+          <div className="flex-1 flex items-center gap-2 px-3" style={{ background: '#0b1120', border: '1px solid #1e2d45', borderRadius: '0.75rem' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, opacity: 0.45 }}>
+              <circle cx="12" cy="8" r="4" fill="#9ca3af"/>
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" fill="#9ca3af"/>
+            </svg>
+            <input
+              value={code}
+              onChange={(e) => { setCode(e.target.value.toUpperCase()); setError('') }}
+              onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+              placeholder="GAMECODE (BIJV. AB12CD)"
+              maxLength={6}
+              className="flex-1 bg-transparent font-mono tracking-widest text-white placeholder-gray-600 focus:outline-none py-3.5"
+              style={{ fontSize: '0.78rem' }}
+            />
+          </div>
           <button
             onClick={handleJoin}
             className="font-black tracking-widest text-white transition-transform active:scale-95"
             style={{
-              background: '#2563eb',
+              background: 'linear-gradient(135deg, #1e3a8a, #2563eb)',
+              border: '1px solid #3b82f6',
               borderRadius: '0.75rem',
               padding: '0.875rem 1.25rem',
-              fontSize: '0.8rem',
-              boxShadow: '0 0 20px rgba(37,99,235,0.45)',
+              fontSize: '0.82rem',
+              boxShadow: '0 0 16px rgba(37,99,235,0.4)',
             }}
           >
             JOIN
@@ -261,28 +264,74 @@ function CrosshairSVG({ cx, cy, r }: { cx: number; cy: number; r: number }) {
 /* ── CARD ICONS ── */
 function RunnerIcon() {
   return (
-    <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-      <circle cx="14" cy="4" r="2" fill="#f97316" />
-      <path d="M6 20L9 14L12 16L15 10L19 12" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <path d="M9.5 9L12 7L15 8.5L13 13L10 11Z" fill="#f97316" opacity="0.8" />
+    <svg width="72" height="72" viewBox="0 0 100 100" fill="none">
+      {/* Speed lines */}
+      <line x1="4"  y1="42" x2="30" y2="42" stroke="#ef4444" strokeWidth="4"   strokeLinecap="round" />
+      <line x1="8"  y1="54" x2="26" y2="54" stroke="#ef4444" strokeWidth="3.5" strokeLinecap="round" opacity="0.65" />
+      <line x1="13" y1="65" x2="24" y2="65" stroke="#ef4444" strokeWidth="3"   strokeLinecap="round" opacity="0.35" />
+      {/* Head */}
+      <circle cx="64" cy="16" r="9" fill="#ef4444" />
+      {/* Body */}
+      <path d="M58 25 L52 54" stroke="#ef4444" strokeWidth="9" strokeLinecap="round" fill="none" />
+      {/* Back arm */}
+      <path d="M57 36 L35 44" stroke="#ef4444" strokeWidth="6" strokeLinecap="round" fill="none" />
+      {/* Front arm */}
+      <path d="M57 33 L80 22" stroke="#ef4444" strokeWidth="6" strokeLinecap="round" fill="none" />
+      {/* Front leg */}
+      <path d="M52 54 L72 70 L84 80" stroke="#ef4444" strokeWidth="7.5" strokeLinecap="round" fill="none" />
+      {/* Back leg */}
+      <path d="M52 54 L38 70 L30 86" stroke="#ef4444" strokeWidth="7.5" strokeLinecap="round" fill="none" />
     </svg>
   )
 }
 
 function PinIcon() {
   return (
-    <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-      <path d="M12 2C8.69 2 6 4.69 6 8c0 5.25 6 13 6 13s6-7.75 6-13c0-3.31-2.69-6-6-6z" fill="#ec4899" />
-      <circle cx="12" cy="8" r="2.5" fill="#080c1a" />
+    <svg width="72" height="72" viewBox="0 0 100 100" fill="none">
+      {/* Outer glow */}
+      <ellipse cx="50" cy="52" rx="32" ry="32" fill="#1d4ed8" opacity="0.15" />
+      {/* Pin body */}
+      <path d="M50 92 C50 92 18 60 18 40 C18 22 32 8 50 8 C68 8 82 22 82 40 C82 60 50 92 50 92 Z" fill="#1d4ed8" />
+      <path d="M50 92 C50 92 18 60 18 40 C18 22 32 8 50 8 C68 8 82 22 82 40 C82 60 50 92 50 92 Z" fill="none" stroke="#60a5fa" strokeWidth="1.5" opacity="0.6" />
+      {/* Target rings */}
+      <circle cx="50" cy="38" r="18" fill="none" stroke="#93c5fd" strokeWidth="2"   opacity="0.5" />
+      <circle cx="50" cy="38" r="11" fill="none" stroke="#bfdbfe" strokeWidth="2.5" opacity="0.75" />
+      <circle cx="50" cy="38" r="5"  fill="#e0f2fe" />
+      <circle cx="50" cy="38" r="2"  fill="#080c1a" />
+      {/* Highlight on pin */}
+      <path d="M32 22 C36 16 44 12 50 12" stroke="#93c5fd" strokeWidth="3" strokeLinecap="round" opacity="0.4" fill="none" />
     </svg>
   )
 }
 
 function TrophyIcon() {
   return (
-    <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-      <path d="M8 21h8M12 17v4M7 4H5C4 4 3 5 3 7c0 3 2 5 4 5.5M17 4h2c1 0 2 1 2 3c0 3-2 5-4 5.5" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" fill="none" />
-      <path d="M7 4h10v7a5 5 0 01-10 0V4z" fill="#22c55e" />
+    <svg width="72" height="72" viewBox="0 0 100 100" fill="none">
+      {/* Base */}
+      <rect x="32" y="88" width="36" height="7" rx="3.5" fill="#16a34a" />
+      {/* Stem */}
+      <rect x="44" y="74" width="12" height="14" fill="#15803d" />
+      {/* Cup body */}
+      <path d="M22 16 L22 52 C22 67 35 75 50 75 C65 75 78 67 78 52 L78 16 Z" fill="#16a34a" />
+      {/* Handles */}
+      <path d="M22 22 C10 22 4 34 10 46 L22 46" stroke="#22c55e" strokeWidth="6" fill="none" strokeLinecap="round" />
+      <path d="M78 22 C90 22 96 34 90 46 L78 46" stroke="#22c55e" strokeWidth="6" fill="none" strokeLinecap="round" />
+      {/* Cup inner dark */}
+      <path d="M28 20 L28 50 C28 62 38 70 50 70 C62 70 72 62 72 50 L72 20 Z" fill="#14532d" />
+      {/* Skull eyes */}
+      <circle cx="40" cy="40" r="7" fill="#080c1a" />
+      <circle cx="60" cy="40" r="7" fill="#080c1a" />
+      {/* Eye shine */}
+      <circle cx="43" cy="37" r="2" fill="#22c55e" opacity="0.5" />
+      <circle cx="63" cy="37" r="2" fill="#22c55e" opacity="0.5" />
+      {/* Skull nose */}
+      <path d="M47 52 L50 48 L53 52" fill="#080c1a" />
+      {/* Skull teeth */}
+      <rect x="35" y="57" width="5" height="8" rx="1" fill="#080c1a" />
+      <rect x="42" y="57" width="5" height="8" rx="1" fill="#080c1a" />
+      <rect x="49" y="57" width="5" height="8" rx="1" fill="#080c1a" />
+      <rect x="56" y="57" width="5" height="8" rx="1" fill="#080c1a" />
+      <rect x="63" y="57" width="5" height="8" rx="1" fill="#080c1a" />
     </svg>
   )
 }
