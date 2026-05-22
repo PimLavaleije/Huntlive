@@ -8,12 +8,14 @@ import { Card } from '@/components/ui/Card'
 import { PlayerList } from '@/components/PlayerList'
 import { GameStatusBanner } from '@/components/GameStatusBanner'
 import { RoleBadge } from '@/components/RoleBadge'
+import { useLanguage } from '@/contexts/LanguageContext'
 import type { Player } from '@/types'
 
 export default function LobbyPage() {
   const router = useRouter()
   const params = useParams()
   const code = (params.code as string).toUpperCase()
+  const { t } = useLanguage()
 
   const [playerId, setPlayerId] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
@@ -95,12 +97,11 @@ export default function LobbyPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  if (loading) return <LoadingScreen />
-  if (error || !game) return <ErrorScreen message={error ?? 'Spel niet gevonden'} />
+  if (loading) return <LoadingScreen label={t('lobby_loading')} />
+  if (error || !game) return <ErrorScreen message={error ?? t('lobby_notFound')} backLabel={t('backToHome')} />
 
   return (
     <main className="min-h-svh text-white flex flex-col" style={{ background: '#000000' }}>
-      {/* Header */}
       <div className="px-4 py-4" style={{ borderBottom: '1px solid #1a2540' }}>
         <div className="flex items-center justify-between">
           <h1 className="font-black tracking-widest uppercase text-white text-sm">{game.name}</h1>
@@ -111,31 +112,29 @@ export default function LobbyPage() {
       <div className="flex-1 overflow-y-auto px-4 py-4 max-w-lg mx-auto w-full flex flex-col gap-4">
         <GameStatusBanner status={game.status} />
 
-        {/* Game code share */}
         <Card>
           <div className="text-center">
-            <p className="text-xs text-gray-600 uppercase tracking-widest mb-2">Deel deze code met je vrienden</p>
+            <p className="text-xs text-gray-600 uppercase tracking-widest mb-2">{t('lobby_shareCode')}</p>
             <div className="font-mono text-4xl font-black tracking-widest text-white mb-3">{code}</div>
             <div className="flex gap-2 justify-center">
               <Button variant="ghost" size="sm" onClick={handleCopyCode}>
-                {copied ? '✓ Gekopieerd' : '📋 Kopieer code'}
+                {copied ? t('lobby_copied') : t('lobby_copyCode')}
               </Button>
               <Button variant="ghost" size="sm" onClick={handleCopyLink}>
-                🔗 Kopieer link
+                {t('lobby_copyLink')}
               </Button>
             </div>
           </div>
         </Card>
 
-        {/* Game settings summary */}
         <Card>
-          <p className="text-xs font-black tracking-widest uppercase text-gray-500 mb-3">Spel-instellingen</p>
+          <p className="text-xs font-black tracking-widest uppercase text-gray-500 mb-3">{t('lobby_settings')}</p>
           <div className="grid grid-cols-2 gap-2">
             {[
-              ['Speelduur', `${game.duration_minutes} min`],
-              ['Voorsprong', `${game.headstart_minutes} min`],
-              ['Locatie-ping', `elke ${game.location_interval_minutes} min`],
-              ['Vangradius', `${game.capture_radius_meters}m`],
+              [t('lobby_settingsDuration'), t('lobby_settingsDurationVal', { n: game.duration_minutes })],
+              [t('lobby_settingsHeadstart'), t('lobby_settingsDurationVal', { n: game.headstart_minutes })],
+              [t('lobby_settingsInterval'), t('lobby_settingsIntervalVal', { n: game.location_interval_minutes })],
+              [t('lobby_settingsRadius'), t('lobby_settingsRadiusVal', { n: game.capture_radius_meters })],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between">
                 <span className="text-gray-600 text-xs">{k}</span>
@@ -145,47 +144,45 @@ export default function LobbyPage() {
           </div>
           {game.rules_text && (
             <div className="mt-3 pt-3" style={{ borderTop: '1px solid #1a2540' }}>
-              <p className="text-xs text-gray-600 mb-1 uppercase tracking-widest">Regels</p>
+              <p className="text-xs text-gray-600 mb-1 uppercase tracking-widest">{t('lobby_rules')}</p>
               <p className="text-sm text-gray-300">{game.rules_text}</p>
             </div>
           )}
         </Card>
 
-        {/* Location permission warning */}
         {locationStatus === 'denied' && (
           <div className="rounded-2xl px-4 py-3 flex flex-col gap-1" style={{ background: '#1c0a0a', border: '1px solid #ef4444' }}>
-            <p className="text-red-400 font-black text-sm uppercase tracking-widest">📵 Locatie geblokkeerd</p>
-            <p className="text-red-300 text-xs">Je hebt locatietoegang geweigerd. Ga naar je browserinstellingen en sta locatie toe voor deze site, en laad de pagina opnieuw.</p>
+            <p className="text-red-400 font-black text-sm uppercase tracking-widest">{t('lobby_locationBlocked')}</p>
+            <p className="text-red-300 text-xs">{t('lobby_locationBlockedDesc')}</p>
           </div>
         )}
         {(locationStatus === 'prompt' || locationStatus === 'checking') && (
           <div className="rounded-2xl px-4 py-3 flex flex-col gap-2" style={{ background: '#0d1a0a', border: '1px solid #f97316' }}>
-            <p className="text-orange-400 font-black text-sm uppercase tracking-widest">📍 Locatie vereist</p>
-            <p className="text-orange-300 text-xs">Het spel heeft jouw GPS-locatie nodig. Geef toegang voordat het spel begint.</p>
+            <p className="text-orange-400 font-black text-sm uppercase tracking-widest">{t('lobby_locationRequired')}</p>
+            <p className="text-orange-300 text-xs">{t('lobby_locationRequiredDesc')}</p>
             <button
               onClick={requestLocation}
               className="text-xs font-black tracking-widest uppercase text-white rounded-xl px-4 py-2 transition-colors"
               style={{ background: 'linear-gradient(135deg, #92400e, #d97706)', border: '1px solid #f97316' }}
             >
-              Locatie inschakelen →
+              {t('lobby_enableLocation')}
             </button>
           </div>
         )}
         {locationStatus === 'unavailable' && (
           <div className="rounded-2xl px-4 py-3" style={{ background: '#1c0a0a', border: '1px solid #ef4444' }}>
-            <p className="text-red-400 font-black text-sm uppercase tracking-widest">❌ GPS niet beschikbaar</p>
-            <p className="text-red-300 text-xs mt-1">Je apparaat ondersteunt geen GPS. Je kunt het spel niet meespelen.</p>
+            <p className="text-red-400 font-black text-sm uppercase tracking-widest">{t('lobby_gpsUnavailable')}</p>
+            <p className="text-red-300 text-xs mt-1">{t('lobby_gpsUnavailableDesc')}</p>
           </div>
         )}
 
-        {/* Players */}
         <Card>
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-black tracking-widest uppercase text-gray-500">
-              Spelers ({players.length})
+              {t('lobby_players', { n: players.length })}
             </p>
             {!hasFugitive && (
-              <span className="text-xs text-orange-400 animate-pulse">Wijs een boef aan!</span>
+              <span className="text-xs text-orange-400 animate-pulse">{t('lobby_assignFugitive')}</span>
             )}
           </div>
           <PlayerList
@@ -196,13 +193,10 @@ export default function LobbyPage() {
           />
         </Card>
 
-        {/* Start button (host only) */}
         {isHost && (
           <div className="flex flex-col gap-3">
             {!hasFugitive && (
-              <p className="text-center text-orange-400 text-sm">
-                Je moet eerst een boef aanwijzen voordat je kunt starten.
-              </p>
+              <p className="text-center text-orange-400 text-sm">{t('lobby_needFugitive')}</p>
             )}
             <Button
               size="xl"
@@ -212,17 +206,17 @@ export default function LobbyPage() {
               className="w-full"
               style={{ background: 'linear-gradient(135deg, #6b0000, #b91c1c, #991b1b)', border: '1px solid #ef4444', boxShadow: '0 0 24px rgba(239,68,68,0.35)' }}
             >
-              🚀 Spel starten
+              {t('lobby_startGame')}
             </Button>
             {players.length < 2 && (
-              <p className="text-center text-gray-600 text-xs tracking-widest uppercase">Wacht op meer spelers...</p>
+              <p className="text-center text-gray-600 text-xs tracking-widest uppercase">{t('lobby_waitingPlayers')}</p>
             )}
           </div>
         )}
 
         {!isHost && (
           <div className="text-center text-gray-600 text-xs py-4 tracking-widest uppercase">
-            Wacht tot de spelleider het spel start...
+            {t('lobby_waitingHost')}
           </div>
         )}
       </div>
@@ -230,20 +224,20 @@ export default function LobbyPage() {
   )
 }
 
-function LoadingScreen() {
+function LoadingScreen({ label }: { label: string }) {
   return (
     <div className="min-h-svh flex items-center justify-center" style={{ background: '#000000' }}>
-      <div className="text-gray-600 tracking-widest uppercase text-xs">Lobby laden...</div>
+      <div className="text-gray-600 tracking-widest uppercase text-xs">{label}</div>
     </div>
   )
 }
 
-function ErrorScreen({ message }: { message: string }) {
+function ErrorScreen({ message, backLabel }: { message: string; backLabel: string }) {
   const router = useRouter()
   return (
     <div className="min-h-svh flex flex-col items-center justify-center gap-4" style={{ background: '#000000' }}>
       <p className="text-red-400">{message}</p>
-      <Button onClick={() => router.push('/')}>Terug naar home</Button>
+      <Button onClick={() => router.push('/')}>{backLabel}</Button>
     </div>
   )
 }

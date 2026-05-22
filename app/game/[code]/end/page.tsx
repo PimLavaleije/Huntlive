@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import { haversineDistance } from '@/lib/distance'
+import { useLanguage } from '@/contexts/LanguageContext'
 import type { Game, Player, Location } from '@/types'
 
 interface CaptureEvent { id: string; hunter_player_id: string; confirmed: boolean; created_at: string }
@@ -35,6 +36,8 @@ export default function EndPage() {
     }
     load()
   }, [code, router])
+
+  const { t } = useLanguage()
 
   if (loading || !game) {
     return <div className="min-h-svh" style={{ background: '#080c1a' }} />
@@ -95,12 +98,12 @@ export default function EndPage() {
   const accent    = fugitiveWon ? '#3b82f6' : huntersWon ? '#ef4444' : '#6b7280'
   const accentDim = fugitiveWon ? '#1d4ed8' : huntersWon ? '#b91c1c' : '#374151'
   const bg        = fugitiveWon ? '#030b18' : huntersWon ? '#0e0303' : '#0a0a0a'
-  const title     = fugitiveWon ? 'RUNNERS'  : huntersWon ? 'HUNTERS'  : 'SPEL'
+  const title     = fugitiveWon ? t('end_runnersTitle') : huntersWon ? t('end_huntersTitle') : t('end_gameTitle')
   const subtitle  = fugitiveWon
-    ? <span>Niet gevangen. <span style={{ color: '#fff' }}>Missie geslaagd.</span></span>
+    ? <span>{t('end_notCaught')} <span style={{ color: '#fff' }}>{t('end_missionSuccess')}</span></span>
     : huntersWon
-    ? <span>De <span style={{ color: accent }}>jacht</span> is geslaagd.</span>
-    : <span style={{ color: '#9ca3af' }}>Het spel is beëindigd.</span>
+    ? <span>{t('end_huntSuccess')}</span>
+    : <span style={{ color: '#9ca3af' }}>{t('end_gameEnded')}</span>
 
   return (
     <main className="min-h-svh flex flex-col" style={{ background: bg, color: '#fff' }}>
@@ -127,7 +130,7 @@ export default function EndPage() {
             {title}
           </div>
           <div className="font-black tracking-widest uppercase" style={{ fontSize: '3.4rem', lineHeight: 1, color: accent, textShadow: `0 0 40px ${accent}66` }}>
-            WIN
+            {t('end_win')}
           </div>
         </div>
 
@@ -141,49 +144,17 @@ export default function EndPage() {
         {/* ── STATS PANEL ── */}
         <div className="grid grid-cols-3 rounded-2xl overflow-hidden" style={{ background: '#0d1120', border: `1px solid ${accentDim}55` }}>
           {fugitiveWon && <>
-            <StatCell
-              icon={<TimerSVG c={accent}/>}
-              label="OVERLEEFD VOLLEDIGE TIJD"
-              value={`${String(game.duration_minutes).padStart(2,'0')}:00`}
-              color={accent}
-            />
-            <StatCell
-              icon={<RunnerSVG c={accent}/>}
-              label="JAGERS ONTSNAPT AAN"
-              value={`${hunters.length} / ${hunters.length}`}
-              color={accent}
-              bordered
-            />
-            <StatCell
-              icon={<XpSVG c={accent}/>}
-              label="XP VERDIEND"
-              value={`+${xp}`}
-              color={accent}
-            />
+            <StatCell icon={<TimerSVG c={accent}/>} label={t('end_survivedTime')} value={`${String(game.duration_minutes).padStart(2,'0')}:00`} color={accent} />
+            <StatCell icon={<RunnerSVG c={accent}/>} label={t('end_evadedHunters')} value={`${hunters.length} / ${hunters.length}`} color={accent} bordered />
+            <StatCell icon={<XpSVG c={accent}/>} label={t('end_xpEarned')} value={`+${xp}`} color={accent} />
           </>}
           {huntersWon && <>
-            <StatCell
-              icon={<CrosshairSVG c={accent}/>}
-              label="DOELWITTEN GEVANGEN"
-              value={`${confirmedCaptures.length} / ${fugitives.length}`}
-              color={accent}
-            />
-            <StatCell
-              icon={<TimerSVG c={accent}/>}
-              label="TIJD OVER"
-              value={timeLeft}
-              color={accent}
-              bordered
-            />
-            <StatCell
-              icon={<TrophySVG c={accent}/>}
-              label="XP VERDIEND"
-              value={`+${xp}`}
-              color={accent}
-            />
+            <StatCell icon={<CrosshairSVG c={accent}/>} label={t('end_targetsCaptured')} value={`${confirmedCaptures.length} / ${fugitives.length}`} color={accent} />
+            <StatCell icon={<TimerSVG c={accent}/>} label={t('end_timeRemaining')} value={timeLeft} color={accent} bordered />
+            <StatCell icon={<TrophySVG c={accent}/>} label={t('end_xpEarned')} value={`+${xp}`} color={accent} />
           </>}
           {!fugitiveWon && !huntersWon && (
-            <div className="col-span-3 py-5 text-center text-sm" style={{ color: '#6b7280' }}>Geen winnaar</div>
+            <div className="col-span-3 py-5 text-center text-sm" style={{ color: '#6b7280' }}>{t('end_noWinner')}</div>
           )}
         </div>
 
@@ -192,13 +163,13 @@ export default function EndPage() {
           <div className="rounded-2xl overflow-hidden" style={{ background: '#0d1120', border: `1px solid ${accentDim}44` }}>
             <div className="px-4 py-3" style={{ borderBottom: `1px solid ${accentDim}55` }}>
               <span className="font-black tracking-widest text-xs uppercase" style={{ color: accent }}>
-                {fugitiveWon ? 'Top Runners' : 'Beste Jagers'}
+                {fugitiveWon ? t('end_topRunners') : t('end_bestHunters')}
               </span>
             </div>
             {fugitiveWon && runnerBoard.map((p, i) => (
               <LeaderRow
                 key={p.id} rank={i+1} name={p.user_name} accent={accent}
-                stat={`${((distByPlayer.get(p.id)??0)/1000).toFixed(2)} KM`}
+                stat={`${((distByPlayer.get(p.id)??0)/1000).toFixed(2)} ${t('end_km')}`}
               />
             ))}
             {huntersWon && hunterBoard.map((p, i) => (

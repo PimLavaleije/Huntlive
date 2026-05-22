@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef } from 'react'
 import type { Location } from '@/types'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface MapMarker {
   lat: number
@@ -34,6 +35,7 @@ export function MapView({
   geofence,
   className,
 }: MapViewProps) {
+  const { t } = useLanguage()
   const mapRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapInstanceRef = useRef<any>(null)
@@ -162,7 +164,7 @@ export function MapView({
             onClick={handleCenterOnSelf}
             className="absolute bottom-16 right-3 z-[1000] text-white rounded-lg p-2 transition-colors shadow-lg"
             style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid #1a2540' }}
-            title="Centreer op mijn locatie"
+            title={t('map_centerOnMe')}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"/>
@@ -179,17 +181,17 @@ export function MapView({
                 <span className={`w-3 h-3 rounded-full border border-white inline-block ${
                   markers.find(m => m.isSelf)?.type === 'admin' ? 'bg-yellow-400' :
                   markers.find(m => m.isSelf)?.type === 'fugitive' ? 'bg-blue-500' : 'bg-red-500'
-                }`} />Jij
+                }`} />{t('map_you')}
               </div>
             )}
             {markers.some(m => m.type === 'fugitive' && !m.isSelf) && (
-              <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500 border border-white inline-block" />Boef</div>
+              <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500 border border-white inline-block" />{t('map_fugitive')}</div>
             )}
             {markers.some(m => m.type === 'hunter' && !m.isSelf) && (
-              <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-500 border border-white inline-block" />Jager</div>
+              <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-500 border border-white inline-block" />{t('map_hunter')}</div>
             )}
             {markers.some(m => m.type === 'admin' && !m.isSelf) && (
-              <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-yellow-400 border border-white inline-block" />Spelleider</div>
+              <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-yellow-400 border border-white inline-block" />{t('map_admin')}</div>
             )}
           </div>
         )}

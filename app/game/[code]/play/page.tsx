@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { RoleBadge } from '@/components/RoleBadge'
 import type { Location, Player, PlayerRole } from '@/types'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function PlayPage() {
   const router = useRouter()
@@ -42,6 +43,7 @@ export default function PlayPage() {
     requestWakeLock()
   }, [code, router])
 
+  const { t } = useLanguage()
   const { game, players, latestFugitiveLocation, locationHistory } = useRealtimeGame(code, playerId)
   const { position, error: geoError, loading: geoLoading, accuracy } = useGeolocation(!!playerId)
   const { headstartLeft, gameLeft, nextUpdateLeft } = useGameTimer(game)
@@ -70,7 +72,7 @@ export default function PlayPage() {
   useEffect(() => {
     if (!isHunter || !latestFugitiveLocation) return
     if (prevLocationRef.current?.id !== latestFugitiveLocation.id) {
-      if (prevLocationRef.current) showNotification('📍 Nieuwe locatie van de boef ontvangen!')
+      if (prevLocationRef.current) showNotification(t('play_notifNewFugitiveLoc'))
       prevLocationRef.current = latestFugitiveLocation
     }
   }, [latestFugitiveLocation, isHunter, showNotification])
@@ -122,20 +124,20 @@ export default function PlayPage() {
 
     if (isFugitive) {
       setPhaseModal({
-        title: '🚨 Jagers losgelaten!',
-        body: 'De voorsprong is voorbij. Jagers weten nu waar je bent. Je ziet hun startlocaties op de kaart.',
+        title: t('play_modalHuntersReleased'),
+        body: t('play_modalHuntersReleasedBody'),
       })
       fetchHunterSnapshot(game.id)
-      showNotification('📍 Locaties gedeeld — je ziet de startposities van de jagers!')
+      showNotification(t('play_notifLocSharedHunter'))
     } else if (isAdmin) {
-      setPhaseModal({ title: '🏃 Jacht begonnen!', body: 'De voorsprong is voorbij. Het spel is actief.' })
+      setPhaseModal({ title: t('play_modalHuntStarted'), body: t('play_modalHuntStartedBody') })
     } else {
       setPhaseModal({
-        title: '🚨 Ga nu zoeken!',
-        body: `De voorsprong is voorbij — de jacht is open! Je ziet de laatste locatie van de boef op de kaart.`,
+        title: t('play_modalGoHunt'),
+        body: t('play_modalGoHuntBody'),
       })
       fetchFugitiveSnapshot(game.id)
-      showNotification('📍 Locaties gedeeld — je ziet de startpositie van de boef!')
+      showNotification(t('play_notifLocSharedFugitive'))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.status])
@@ -173,7 +175,7 @@ export default function PlayPage() {
         if (completedIntervals > lastSnapshotRef.current) {
           lastSnapshotRef.current = completedIntervals
           shouldBeVisible = true
-          showNotification('📡 Locaties gedeeld — jagers zien jou, jij ziet de jagers!')
+          showNotification(t('play_notifLocationsShared'))
           fetchHunterSnapshot(game.id)
         }
       }
@@ -272,7 +274,7 @@ export default function PlayPage() {
   // Warn fugitive 30s before share
   useEffect(() => {
     if (!isFugitive || !game || game.status !== 'active') return
-    if (nextUpdateLeft === 30) showNotification('⚠️ Je locatie wordt over 30 seconden gedeeld!')
+    if (nextUpdateLeft === 30) showNotification(t('play_notifWarning30s'))
   }, [nextUpdateLeft, isFugitive, game, showNotification])
 
   // Heartbeat
@@ -338,7 +340,7 @@ export default function PlayPage() {
   }
 
   if (!game || !currentPlayer) {
-    return <div className="min-h-svh flex items-center justify-center text-gray-600 tracking-widest uppercase text-xs" style={{ background: '#000000' }}>Laden...</div>
+    return <div className="min-h-svh flex items-center justify-center text-gray-600 tracking-widest uppercase text-xs" style={{ background: '#000000' }}>{t('play_loading')}</div>
   }
 
   const distanceToFugitive =
@@ -350,7 +352,7 @@ export default function PlayPage() {
   const mapMarkers = []
   if (position) {
     const selfType = isAdmin ? 'admin' as const : isFugitive ? 'fugitive' as const : 'hunter' as const
-    mapMarkers.push({ lat: position.latitude, lng: position.longitude, type: selfType, label: `Jij (${currentPlayer.user_name})`, isSelf: true })
+    mapMarkers.push({ lat: position.latitude, lng: position.longitude, type: selfType, label: t('play_selfLabel', { name: currentPlayer.user_name }), isSelf: true })
   }
   if (isAdmin) {
     allPlayerLocations.forEach((loc, pid) => {
@@ -362,16 +364,16 @@ export default function PlayPage() {
     })
   } else if (isHunter) {
     if (latestFugitiveLocation) {
-      mapMarkers.push({ lat: latestFugitiveLocation.latitude, lng: latestFugitiveLocation.longitude, type: 'fugitive' as const, label: `Boef – ${formatRelativeTime(latestFugitiveLocation.created_at)}` })
+      mapMarkers.push({ lat: latestFugitiveLocation.latitude, lng: latestFugitiveLocation.longitude, type: 'fugitive' as const, label: t('play_fugitiveLabel', { time: formatRelativeTime(latestFugitiveLocation.created_at) }) })
     } else if (fugitiveSnapshot) {
       const fp = players.find((p) => p.id === fugitiveSnapshot.playerId)
-      mapMarkers.push({ lat: fugitiveSnapshot.lat, lng: fugitiveSnapshot.lng, type: 'fugitive' as const, label: `${fp?.user_name ?? 'Boef'} – startpositie` })
+      mapMarkers.push({ lat: fugitiveSnapshot.lat, lng: fugitiveSnapshot.lng, type: 'fugitive' as const, label: t('play_fugitiveStartLabel', { name: fp?.user_name ?? t('play_hunterLabel') }) })
     }
   } else if (isFugitive) {
     hunterLocations.forEach((loc, pid) => {
       const player = players.find((p) => p.id === pid)
       const type = player?.role === 'admin' ? 'admin' as const : 'hunter' as const
-      mapMarkers.push({ lat: loc.lat, lng: loc.lng, type, label: player?.user_name ?? 'Jager' })
+      mapMarkers.push({ lat: loc.lat, lng: loc.lng, type, label: player?.user_name ?? t('play_hunterLabel') })
     })
   }
 
@@ -381,7 +383,7 @@ export default function PlayPage() {
       const player = players.find((p) => p.id === pid)
       if (!player) return
       const type = player.role === 'fugitive' ? 'fugitive' as const : player.role === 'admin' ? 'admin' as const : 'hunter' as const
-      mapMarkers.push({ lat: loc.lat, lng: loc.lng, type, label: `${player.user_name} (team)` })
+      mapMarkers.push({ lat: loc.lat, lng: loc.lng, type, label: t('play_teamLabel', { name: player.user_name }) })
     })
   }
 
@@ -392,7 +394,7 @@ export default function PlayPage() {
     : undefined
 
   const timerSeconds = game.status === 'headstart' ? headstartLeft : gameLeft
-  const timerLabel = game.status === 'headstart' ? 'Voorsprong' : 'Speeltijd over'
+  const timerLabel = game.status === 'headstart' ? t('play_headstart') : t('play_timeLeft')
 
   const statusColor = game.status === 'headstart' ? 'bg-orange-500' : game.status === 'active' ? 'bg-red-500' : 'bg-yellow-500'
 
@@ -433,7 +435,7 @@ export default function PlayPage() {
             </p>
             {game.status === 'headstart' && gameLeft > 0 && (
               <p className="font-mono text-xs tabular-nums text-gray-500 leading-none mt-1">
-                spel {String(Math.floor(gameLeft / 60)).padStart(2, '0')}:{String(gameLeft % 60).padStart(2, '0')}
+                {t('play_gamePrefix')} {String(Math.floor(gameLeft / 60)).padStart(2, '0')}:{String(gameLeft % 60).padStart(2, '0')}
               </p>
             )}
           </div>
@@ -459,7 +461,7 @@ export default function PlayPage() {
           className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[500] backdrop-blur-sm text-white rounded-full px-5 py-2 text-sm font-medium flex items-center gap-2 shadow-lg transition-colors"
           style={{ background: 'rgba(0,0,0,0.9)', border: '1px solid #1a2540' }}
         >
-          {panelOpen ? '▼ Verberg acties' : '▲ Toon acties'}
+          {panelOpen ? t('play_hideActions') : t('play_showActions')}
         </button>
       </div>
 
@@ -476,7 +478,7 @@ export default function PlayPage() {
               className="bg-orange-600 hover:bg-orange-500 text-white font-semibold px-6 py-2.5 rounded-xl transition-colors"
               onClick={() => setPhaseModal(null)}
             >
-              Begrepen
+              {t('play_gotIt')}
             </button>
           </div>
         </div>
@@ -489,31 +491,31 @@ export default function PlayPage() {
           {/* Fugitive info */}
           {isFugitive && game.status === 'active' && (
             <div className="flex justify-between items-center bg-blue-900/30 border border-blue-700 rounded-xl px-4 py-2.5 text-sm">
-              <span className="text-blue-300">Volgende ping over</span>
+              <span className="text-blue-300">{t('play_nextPing')}</span>
               <span className={`font-mono font-bold ${nextUpdateLeft <= 30 ? 'text-red-400 animate-pulse' : 'text-blue-200'}`}>{nextUpdateLeft}s</span>
             </div>
           )}
 
           {isFugitive && game.status === 'headstart' && (
             <div className="bg-blue-900/40 border border-blue-600 rounded-xl px-4 py-2.5 text-center">
-              <p className="text-blue-300 font-semibold text-sm">🏃 Pak je voorsprong — jagers kunnen je nog niet zien</p>
+              <p className="text-blue-300 font-semibold text-sm">{t('play_headstartInfo')}</p>
             </div>
           )}
 
           {/* Hunter info */}
           {isHunter && latestFugitiveLocation && (
             <div className="flex justify-between items-center bg-red-900/30 border border-red-700 rounded-xl px-4 py-2.5 text-sm">
-              <span className="text-red-300">Boef gezien</span>
+              <span className="text-red-300">{t('play_fugitiveSeen')}</span>
               <span className="text-red-200">{formatRelativeTime(latestFugitiveLocation.created_at)}</span>
               {game.status === 'active' && (
-                <span className="text-red-400 text-xs">volgende: {nextUpdateLeft}s</span>
+                <span className="text-red-400 text-xs">{t('play_nextPingSuffix', { n: nextUpdateLeft })}</span>
               )}
             </div>
           )}
 
           {isHunter && !latestFugitiveLocation && game.status === 'active' && (
             <div className="bg-red-900/20 border border-red-800 rounded-xl px-4 py-2.5 text-center text-sm text-red-400">
-              Wacht op eerste locatie-ping ({nextUpdateLeft}s)
+              {t('play_waitingPing', { n: nextUpdateLeft })}
             </div>
           )}
 
@@ -536,10 +538,10 @@ export default function PlayPage() {
               <div className="flex flex-col gap-2">
                 <div className="flex gap-2">
                   <Button variant="secondary" size="sm" onClick={handleAdminPause} className="flex-1">
-                    {game.status === 'paused' ? '▶️ Hervatten' : '⏸️ Pauzeren'}
+                    {game.status === 'paused' ? t('play_resume') : t('play_pause')}
                   </Button>
                   <Button variant="danger" size="sm" onClick={handleAdminEnd} className="flex-1">
-                    🛑 Beëindigen
+                    {t('play_endGame')}
                   </Button>
                 </div>
                 <button
@@ -547,7 +549,7 @@ export default function PlayPage() {
                   className="w-full text-sm text-gray-300 rounded-xl px-4 py-2 flex items-center justify-between transition-colors"
                   style={{ background: '#0d1018', border: '1px solid #1a2540' }}
                 >
-                  <span>👥 Teams wijzigen</span>
+                  <span>{t('play_editTeams')}</span>
                   <span>{showTeamEditor ? '▲' : '▼'}</span>
                 </button>
                 {showTeamEditor && (
@@ -556,7 +558,7 @@ export default function PlayPage() {
                       <div key={p.id} className="flex items-center justify-between rounded-xl px-3 py-2" style={{ background: '#0d1018', border: '1px solid #1a2540' }}>
                         <span className="text-white text-sm font-medium truncate max-w-[100px]">{p.user_name}</span>
                         <div className="flex gap-1">
-                          {([['fugitive', '🔵 Boef'], ['hunter', '🔴 Jager'], ['admin', '🟡 Leider']] as [PlayerRole, string][]).map(([role, label]) => (
+                          {([['fugitive', t('play_roleFugitive')], ['hunter', t('play_roleHunter')], ['admin', t('play_roleAdmin')]] as [PlayerRole, string][]).map(([role, label]) => (
                             <button
                               key={role}
                               onClick={() => handleRoleChange(p.id, role)}
@@ -586,20 +588,21 @@ export default function PlayPage() {
 }
 
 function SurrenderButton({ onSurrender }: { onSurrender: () => void }) {
+  const { t } = useLanguage()
   const [confirm, setConfirm] = useState(false)
   if (!confirm) {
     return (
       <Button variant="secondary" onClick={() => setConfirm(true)} className="w-full">
-        🏳️ Ik geef op
+        {t('play_surrender')}
       </Button>
     )
   }
   return (
     <Card className="bg-red-900/40 border-red-700">
-      <p className="text-center text-white text-sm mb-3">Weet je zeker dat je wilt opgeven?</p>
+      <p className="text-center text-white text-sm mb-3">{t('play_surrenderConfirm')}</p>
       <div className="flex gap-3">
-        <Button variant="ghost" className="flex-1" onClick={() => setConfirm(false)}>Annuleer</Button>
-        <Button variant="danger" className="flex-1" onClick={onSurrender}>Ja, geef op</Button>
+        <Button variant="ghost" className="flex-1" onClick={() => setConfirm(false)}>{t('cancel')}</Button>
+        <Button variant="danger" className="flex-1" onClick={onSurrender}>{t('play_surrenderYes')}</Button>
       </div>
     </Card>
   )

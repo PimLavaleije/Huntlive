@@ -5,11 +5,13 @@ import { supabase, generateGameCode } from '@/lib/supabase-client'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 type Step = 'settings' | 'identity'
 
 export default function CreateGamePage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [step, setStep] = useState<Step>('settings')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -27,7 +29,7 @@ export default function CreateGamePage() {
   const [hostName, setHostName] = useState('')
 
   const handleCreate = async () => {
-    if (!hostName.trim()) { setError('Vul je naam in'); return }
+    if (!hostName.trim()) { setError(t('create_nameError')); return }
     setLoading(true)
     setError('')
 
@@ -53,7 +55,7 @@ export default function CreateGamePage() {
         ends_at: null,
       }).select().single()
 
-      if (gameErr || !game) throw new Error(gameErr?.message ?? 'Spel aanmaken mislukt')
+      if (gameErr || !game) throw new Error(gameErr?.message ?? t('create_nameError'))
 
       const { data: player, error: playerErr } = await supabase.from('players').insert({
         game_id: game.id,
@@ -63,14 +65,14 @@ export default function CreateGamePage() {
         last_seen_at: new Date().toISOString(),
       }).select().single()
 
-      if (playerErr || !player) throw new Error(playerErr?.message ?? 'Speler aanmaken mislukt')
+      if (playerErr || !player) throw new Error(playerErr?.message ?? t('create_nameError'))
 
       sessionStorage.setItem(`player_${code}`, player.id)
       sessionStorage.setItem(`player_name_${code}`, hostName.trim())
 
       router.push(`/game/${code}/lobby`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Onbekende fout')
+      setError(err instanceof Error ? err.message : t('create_nameError'))
     } finally {
       setLoading(false)
     }
@@ -78,32 +80,31 @@ export default function CreateGamePage() {
 
   return (
     <main className="min-h-svh text-white flex flex-col" style={{ background: '#000000' }}>
-      {/* Header */}
       <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: '1px solid #1a2540' }}>
         <button
           onClick={() => router.back()}
           className="text-gray-500 hover:text-white transition-colors p-1 text-sm tracking-widest uppercase font-bold"
         >
-          ← Terug
+          {t('back')}
         </button>
-        <h1 className="font-black tracking-widest uppercase text-white text-sm">Nieuw spel aanmaken</h1>
+        <h1 className="font-black tracking-widest uppercase text-white text-sm">{t('create_title')}</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-6 max-w-lg mx-auto w-full">
         {step === 'settings' ? (
           <div className="flex flex-col gap-5">
             <Card>
-              <h2 className="font-black tracking-widest uppercase text-xs text-gray-400 mb-4">Spel-instellingen</h2>
+              <h2 className="font-black tracking-widest uppercase text-xs text-gray-400 mb-4">{t('create_settings')}</h2>
               <div className="flex flex-col gap-4">
                 <Input
-                  label="Spelnaam (optioneel)"
-                  placeholder="bijv. Jacht door Amsterdam"
+                  label={t('create_gameName')}
+                  placeholder={t('create_gameNamePlaceholder')}
                   value={settings.name}
                   onChange={(e) => setSettings((s) => ({ ...s, name: e.target.value }))}
                 />
                 <div className="grid grid-cols-2 gap-3">
                   <Input
-                    label="Speelduur (min)"
+                    label={t('create_duration')}
                     type="number"
                     min={5}
                     max={240}
@@ -111,7 +112,7 @@ export default function CreateGamePage() {
                     onChange={(e) => setSettings((s) => ({ ...s, duration_minutes: Number(e.target.value) }))}
                   />
                   <Input
-                    label="Voorsprong (min)"
+                    label={t('create_headstart')}
                     type="number"
                     min={1}
                     max={30}
@@ -121,36 +122,36 @@ export default function CreateGamePage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Input
-                    label="Locatie-interval (min)"
+                    label={t('create_locationInterval')}
                     type="number"
                     min={1}
                     max={30}
                     value={settings.location_interval_minutes}
                     onChange={(e) => setSettings((s) => ({ ...s, location_interval_minutes: Number(e.target.value) }))}
-                    hint="Hoe vaak jagers een locatie-update krijgen"
+                    hint={t('create_locationIntervalHint')}
                   />
                   <Input
-                    label="Vangradius (meter)"
+                    label={t('create_captureRadius')}
                     type="number"
                     min={10}
                     max={500}
                     value={settings.capture_radius_meters}
                     onChange={(e) => setSettings((s) => ({ ...s, capture_radius_meters: Number(e.target.value) }))}
-                    hint="Hoe dichtbij om te vangen"
+                    hint={t('create_captureRadiusHint')}
                   />
                 </div>
                 <Input
-                  label="Speelgebied-radius (meter, optioneel)"
+                  label={t('create_geofenceRadius')}
                   type="number"
                   min={100}
-                  placeholder="Leeg = geen geofence"
+                  placeholder={t('create_geofencePlaceholder')}
                   value={settings.geofence_radius_meters}
                   onChange={(e) => setSettings((s) => ({ ...s, geofence_radius_meters: e.target.value }))}
-                  hint="Gecentreerd op startlocatie boef"
+                  hint={t('create_geofenceHint')}
                 />
                 <Textarea
-                  label="Vervoersregels / extra info (optioneel)"
-                  placeholder="bijv. Geen openbaar vervoer, alleen te voet en fiets..."
+                  label={t('create_rules')}
+                  placeholder={t('create_rulesPlaceholder')}
                   rows={3}
                   value={settings.rules_text}
                   onChange={(e) => setSettings((s) => ({ ...s, rules_text: e.target.value }))}
@@ -158,15 +159,14 @@ export default function CreateGamePage() {
               </div>
             </Card>
 
-            {/* Summary */}
             <Card>
-              <h3 className="font-black tracking-widest uppercase text-xs text-gray-400 mb-3">Samenvatting</h3>
+              <h3 className="font-black tracking-widest uppercase text-xs text-gray-400 mb-3">{t('create_summary')}</h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 {[
-                  ['Speelduur', `${settings.duration_minutes} min`],
-                  ['Voorsprong', `${settings.headstart_minutes} min`],
-                  ['Locatie-ping', `elke ${settings.location_interval_minutes} min`],
-                  ['Vangradius', `${settings.capture_radius_meters}m`],
+                  [t('create_summaryDuration'), t('create_summaryDurationVal', { n: settings.duration_minutes })],
+                  [t('create_summaryHeadstart'), t('create_summaryDurationVal', { n: settings.headstart_minutes })],
+                  [t('create_summaryInterval'), t('create_summaryIntervalVal', { n: settings.location_interval_minutes })],
+                  [t('create_summaryRadius'), t('create_summaryRadiusVal', { n: settings.capture_radius_meters })],
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between">
                     <span className="text-gray-600 text-xs">{k}</span>
@@ -177,16 +177,16 @@ export default function CreateGamePage() {
             </Card>
 
             <Button size="lg" onClick={() => setStep('identity')} className="w-full">
-              Verder →
+              {t('create_continue')}
             </Button>
           </div>
         ) : (
           <div className="flex flex-col gap-5">
             <Card>
-              <h2 className="font-black tracking-widest uppercase text-xs text-gray-400 mb-4">Jouw naam als spelleider</h2>
+              <h2 className="font-black tracking-widest uppercase text-xs text-gray-400 mb-4">{t('create_hostName')}</h2>
               <Input
-                label="Je naam"
-                placeholder="bijv. Max"
+                label={t('create_yourName')}
+                placeholder={t('create_yourNamePlaceholder')}
                 value={hostName}
                 onChange={(e) => { setHostName(e.target.value); setError('') }}
                 autoFocus
@@ -197,7 +197,7 @@ export default function CreateGamePage() {
 
             <div className="flex gap-3">
               <Button variant="ghost" size="lg" onClick={() => setStep('settings')} className="flex-1">
-                ← Terug
+                {t('back')}
               </Button>
               <Button
                 size="lg"
@@ -206,7 +206,7 @@ export default function CreateGamePage() {
                 className="flex-1"
                 style={{ background: 'linear-gradient(135deg, #6b0000, #b91c1c, #991b1b)', border: '1px solid #ef4444', boxShadow: '0 0 20px rgba(239,68,68,0.3)' }}
               >
-                Spel aanmaken 🎯
+                {t('create_createBtn')}
               </Button>
             </div>
           </div>

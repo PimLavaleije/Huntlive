@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { GameStatusBanner } from '@/components/GameStatusBanner'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function JoinGamePage() {
   const router = useRouter()
   const params = useParams()
   const code = (params.code as string).toUpperCase()
+  const { t } = useLanguage()
 
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
@@ -26,7 +28,7 @@ export default function JoinGamePage() {
         const { count } = await supabase.from('players').select('*', { count: 'exact', head: true }).eq('game_id', game.id)
         setGamePreview({ name: game.name, status: game.status, playerCount: count ?? 0 })
       } else {
-        setError('Spel niet gevonden. Controleer de code.')
+        setError(t('join_notFound'))
       }
       setPreviewing(false)
     }
@@ -34,14 +36,14 @@ export default function JoinGamePage() {
   })
 
   const handleJoin = async () => {
-    if (!name.trim()) { setError('Vul je naam in'); return }
+    if (!name.trim()) { setError(t('join_nameError')); return }
     setLoading(true)
     setError('')
 
     try {
       const game = await getGameByCode(code)
-      if (!game) throw new Error('Spel niet gevonden')
-      if (game.status === 'finished') throw new Error('Dit spel is al afgelopen')
+      if (!game) throw new Error(t('join_notFoundShort'))
+      if (game.status === 'finished') throw new Error(t('join_alreadyFinished'))
 
       const { data: existing } = await supabase
         .from('players')
@@ -50,7 +52,7 @@ export default function JoinGamePage() {
         .eq('user_name', name.trim())
         .single()
 
-      if (existing) throw new Error('Deze naam is al in gebruik in dit spel')
+      if (existing) throw new Error(t('join_nameTaken'))
 
       const { data: player, error: playerErr } = await supabase.from('players').insert({
         game_id: game.id,
@@ -60,14 +62,14 @@ export default function JoinGamePage() {
         last_seen_at: new Date().toISOString(),
       }).select().single()
 
-      if (playerErr || !player) throw new Error(playerErr?.message ?? 'Joinen mislukt')
+      if (playerErr || !player) throw new Error(playerErr?.message ?? t('join_failed'))
 
       sessionStorage.setItem(`player_${code}`, player.id)
       sessionStorage.setItem(`player_name_${code}`, name.trim())
 
       router.push(`/game/${code}/lobby`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Onbekende fout')
+      setError(err instanceof Error ? err.message : t('join_failed'))
     } finally {
       setLoading(false)
     }
@@ -80,28 +82,28 @@ export default function JoinGamePage() {
           onClick={() => router.push('/')}
           className="text-gray-500 hover:text-white transition-colors text-sm tracking-widest uppercase font-bold"
         >
-          ← Home
+          {t('home')}
         </button>
         <h1 className="font-black tracking-widest font-mono text-white">{code}</h1>
       </div>
 
       <div className="flex-1 flex flex-col justify-center px-5 max-w-sm mx-auto w-full gap-5 py-8">
         {previewing ? (
-          <div className="text-center text-gray-500 tracking-widest uppercase text-xs">Spel laden...</div>
+          <div className="text-center text-gray-500 tracking-widest uppercase text-xs">{t('join_loading')}</div>
         ) : gamePreview ? (
           <>
             <Card className="text-center">
-              <p className="text-xs text-gray-600 uppercase tracking-widest mb-1">Je gaat joinen:</p>
+              <p className="text-xs text-gray-600 uppercase tracking-widest mb-1">{t('join_joining')}</p>
               <h2 className="font-black text-xl text-white mt-1">{gamePreview.name}</h2>
               <div className="mt-2">
                 <GameStatusBanner status={gamePreview.status as never} />
               </div>
-              <p className="text-xs text-gray-500 mt-2 tracking-widest">{gamePreview.playerCount} spelers joined</p>
+              <p className="text-xs text-gray-500 mt-2 tracking-widest">{t('join_playerCount', { n: gamePreview.playerCount })}</p>
             </Card>
 
             <Input
-              label="Jouw naam"
-              placeholder="bijv. Stef"
+              label={t('join_yourName')}
+              placeholder={t('join_namePlaceholder')}
               value={name}
               onChange={(e) => { setName(e.target.value); setError('') }}
               autoFocus
@@ -111,13 +113,13 @@ export default function JoinGamePage() {
             {error && <p className="text-red-400 text-sm text-center">{error}</p>}
 
             <Button size="lg" loading={loading} onClick={handleJoin} className="w-full">
-              Join spel als jager
+              {t('join_joinBtn')}
             </Button>
           </>
         ) : (
           <div className="text-center">
-            <p className="text-red-400 mb-4">{error || 'Spel niet gevonden'}</p>
-            <Button variant="ghost" onClick={() => router.push('/')}>Terug naar home</Button>
+            <p className="text-red-400 mb-4">{error || t('join_notFoundShort')}</p>
+            <Button variant="ghost" onClick={() => router.push('/')}>{t('backToHome')}</Button>
           </div>
         )}
       </div>

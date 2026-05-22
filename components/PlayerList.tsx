@@ -1,6 +1,8 @@
+'use client'
 import { RoleBadge } from './RoleBadge'
 import type { Player } from '@/types'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface PlayerListProps {
   players: Player[]
@@ -11,6 +13,7 @@ interface PlayerListProps {
 }
 
 export function PlayerList({ players, currentPlayerId, showRoles = true, onRoleChange, className }: PlayerListProps) {
+  const { t } = useLanguage()
   return (
     <div className={cn('flex flex-col gap-2', className)}>
       {players.map((player) => (
@@ -24,7 +27,7 @@ export function PlayerList({ players, currentPlayerId, showRoles = true, onRoleC
           <div className="flex items-center gap-2">
             <span className="font-medium text-white">
               {player.user_name}
-              {player.id === currentPlayerId && <span className="text-xs text-gray-400 ml-1">(jij)</span>}
+              {player.id === currentPlayerId && <span className="text-xs text-gray-400 ml-1">({t('playerList_you')})</span>}
             </span>
             {player.is_host && <span className="text-xs text-yellow-400">★</span>}
           </div>
@@ -42,6 +45,7 @@ export function PlayerList({ players, currentPlayerId, showRoles = true, onRoleC
 }
 
 function RoleSelector({ role, onChange }: { role: Player['role']; onChange: (r: Player['role']) => void }) {
+  const { t } = useLanguage()
   return (
     <select
       value={role}
@@ -49,9 +53,9 @@ function RoleSelector({ role, onChange }: { role: Player['role']; onChange: (r: 
       className="text-white text-xs rounded-lg px-2 py-1"
       style={{ background: '#0b1120', border: '1px solid #1e2d45' }}
     >
-      <option value="hunter">🔍 Jager</option>
-      <option value="fugitive">🏃 Voortvluchtige</option>
-      <option value="admin">👑 Spelleider</option>
+      <option value="hunter">{t('playerList_roleHunter')}</option>
+      <option value="fugitive">{t('playerList_roleFugitive')}</option>
+      <option value="admin">{t('playerList_roleAdmin')}</option>
     </select>
   )
 }

@@ -2,52 +2,68 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function HomePage() {
   const router = useRouter()
+  const { t, lang, setLang } = useLanguage()
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
 
   const handleJoin = () => {
     const trimmed = code.trim().toUpperCase()
-    if (!trimmed) { setError('Voer een gamecode in'); return }
+    if (!trimmed) { setError(t('home_codeError')); return }
     router.push(`/game/${trimmed}`)
   }
 
   return (
     <main className="min-h-svh flex flex-col" style={{ background: '#000000', color: '#fff' }}>
 
+      {/* Language toggle */}
+      <div className="flex justify-end px-4 pt-3">
+        <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #1a2540' }}>
+          <button
+            onClick={() => setLang('nl')}
+            className="px-3 py-1.5 text-xs font-bold tracking-widest transition-colors"
+            style={lang === 'nl'
+              ? { background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', color: '#fff' }
+              : { background: '#0d1018', color: '#6b7280' }}
+          >
+            NL
+          </button>
+          <button
+            onClick={() => setLang('en')}
+            className="px-3 py-1.5 text-xs font-bold tracking-widest transition-colors"
+            style={lang === 'en'
+              ? { background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', color: '#fff' }
+              : { background: '#0d1018', color: '#6b7280' }}
+          >
+            EN
+          </button>
+        </div>
+      </div>
+
       {/* ── HERO ── */}
-      <div className="flex flex-col items-center px-5 pt-6 pb-2 text-center">
+      <div className="flex flex-col items-center px-5 pt-2 pb-2 text-center">
         <Image src="/logo.png" alt="Chase Zone logo" width={280} height={280} className="object-contain w-full max-w-xs" priority />
       </div>
 
       {/* ── MAP ILLUSTRATION ── */}
       <div className="w-full overflow-hidden" style={{ height: 210 }}>
-        <Image
-          src="/map-bg.png"
-          alt="Map"
-          width={800}
-          height={210}
-          className="w-full h-full object-cover"
-        />
+        <Image src="/map-bg.png" alt="Map" width={800} height={210} className="w-full h-full object-cover" />
       </div>
 
       {/* ── FEATURE CARDS ── */}
       <div className="grid grid-cols-3 gap-2 px-3" style={{ marginTop: -8 }}>
-
         <div className="flex items-center justify-center rounded-2xl overflow-hidden" style={{ background: '#0d1018', border: '1px solid #2a1a1a' }}>
           <Image src="/advantage.png" alt="Voorsprong" width={160} height={160} className="w-full h-auto object-contain" />
         </div>
-
         <div className="flex items-center justify-center rounded-2xl overflow-hidden" style={{ background: '#0d1018', border: '1px solid #0f1e35' }}>
           <Image src="/icon-gps.png" alt="GPS Pings" width={160} height={160} className="w-full h-auto object-contain" />
         </div>
-
         <div className="flex items-center justify-center rounded-2xl overflow-hidden" style={{ background: '#0d1018', border: '1px solid #0f2018' }}>
           <Image src="/icon-trophy.png" alt="Win of Ontsnap" width={160} height={160} className="w-full h-auto object-contain" />
         </div>
-
       </div>
 
       {/* ── CTA ── */}
@@ -63,7 +79,7 @@ export default function HomePage() {
             boxShadow: '0 0 30px rgba(239,68,68,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}
         >
-          <span>NIEUW SPEL AANMAKEN</span>
+          <span>{t('home_createGame')}</span>
           <span style={{ color: '#ef4444', fontSize: '1.4rem', lineHeight: 1, fontWeight: 900 }}>›</span>
         </button>
       </div>
@@ -73,7 +89,7 @@ export default function HomePage() {
         <div className="flex items-center gap-3 mb-4">
           <div className="flex-1 h-px" style={{ background: '#1a2540' }} />
           <span className="tracking-widest uppercase" style={{ fontSize: '0.6rem', color: '#4b5563', whiteSpace: 'nowrap' }}>
-            Of join een bestaand spel
+            {t('home_orJoin')}
           </span>
           <div className="flex-1 h-px" style={{ background: '#1a2540' }} />
         </div>
@@ -87,7 +103,7 @@ export default function HomePage() {
               value={code}
               onChange={(e) => { setCode(e.target.value.toUpperCase()); setError('') }}
               onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-              placeholder="GAMECODE (BIJV. AB12CD)"
+              placeholder={t('home_codePlaceholder')}
               maxLength={6}
               className="flex-1 bg-transparent font-mono tracking-widest text-white placeholder-gray-600 focus:outline-none py-3.5"
               style={{ fontSize: '0.78rem' }}
