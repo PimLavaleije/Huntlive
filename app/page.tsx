@@ -44,28 +44,16 @@ export default function HomePage() {
       {/* ── FEATURE CARDS ── */}
       <div className="grid grid-cols-3 gap-2 px-3" style={{ marginTop: -8 }}>
 
-        <div className="flex flex-col items-center text-center px-1.5 pt-4 pb-3 rounded-2xl" style={{ background: '#0d1018', border: '1px solid #2a1a1a' }}>
-          <div className="h-[72px] flex items-center justify-center">
-            <Image src="/advantage.png" alt="Voorsprong" width={72} height={72} className="object-contain max-h-[72px]" />
-          </div>
-          <span className="mt-2 font-black tracking-wider uppercase" style={{ fontSize: '0.62rem', color: '#ef4444', lineHeight: 1.2 }}>VOORSPRONG</span>
-          <span className="mt-1 leading-tight uppercase" style={{ fontSize: '0.55rem', color: '#9ca3af' }}>Boef pakt een vluchtvlucht</span>
+        <div className="flex items-center justify-center rounded-2xl overflow-hidden" style={{ background: '#0d1018', border: '1px solid #2a1a1a' }}>
+          <Image src="/advantage.png" alt="Voorsprong" width={160} height={160} className="w-full h-auto object-contain" />
         </div>
 
-        <div className="flex flex-col items-center text-center px-1.5 pt-4 pb-3 rounded-2xl" style={{ background: '#0d1018', border: '1px solid #0f1e35' }}>
-          <div className="h-[72px] flex items-center justify-center">
-            <Image src="/icon-gps.png" alt="GPS Pings" width={72} height={72} className="object-contain max-h-[72px]" />
-          </div>
-          <span className="mt-2 font-black tracking-wider uppercase" style={{ fontSize: '0.62rem', color: '#3b82f6', lineHeight: 1.2 }}>GPS PINGS</span>
-          <span className="mt-1 leading-tight uppercase" style={{ fontSize: '0.55rem', color: '#9ca3af' }}>Jagers krijgen locatie-updates</span>
+        <div className="flex items-center justify-center rounded-2xl overflow-hidden" style={{ background: '#0d1018', border: '1px solid #0f1e35' }}>
+          <Image src="/icon-gps.png" alt="GPS Pings" width={160} height={160} className="w-full h-auto object-contain" />
         </div>
 
-        <div className="flex flex-col items-center text-center px-1.5 pt-4 pb-3 rounded-2xl" style={{ background: '#0d1018', border: '1px solid #0f2018' }}>
-          <div className="h-[72px] flex items-center justify-center">
-            <Image src="/icon-trophy.png" alt="Win of Ontsnap" width={72} height={72} className="object-contain max-h-[72px]" />
-          </div>
-          <span className="mt-2 font-black tracking-wider uppercase" style={{ fontSize: '0.62rem', color: '#22c55e', lineHeight: 1.2 }}>WIN OF ONTSNAP</span>
-          <span className="mt-1 leading-tight uppercase" style={{ fontSize: '0.55rem', color: '#9ca3af' }}>Vang of overleef de tijd</span>
+        <div className="flex items-center justify-center rounded-2xl overflow-hidden" style={{ background: '#0d1018', border: '1px solid #0f2018' }}>
+          <Image src="/icon-trophy.png" alt="Win of Ontsnap" width={160} height={160} className="w-full h-auto object-contain" />
         </div>
 
       </div>
