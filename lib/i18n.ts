@@ -65,7 +65,7 @@ const nl = {
   create_continue: 'Verder →',
   create_hostName: 'Jouw naam als spelleider',
   create_yourName: 'Je naam',
-  create_yourNamePlaceholder: 'bijv. Max',
+  create_yourNamePlaceholder: 'bijv. Jan Peter Balkenende',
   create_createBtn: 'Spel aanmaken 🎯',
   create_nameError: 'Vul je naam in',
 
@@ -266,7 +266,7 @@ const en: Record<keyof typeof nl, string> = {
   create_continue: 'Continue →',
   create_hostName: 'Your name as game master',
   create_yourName: 'Your name',
-  create_yourNamePlaceholder: 'e.g. Max',
+  create_yourNamePlaceholder: 'e.g. Borat',
   create_createBtn: 'Create Game 🎯',
   create_nameError: 'Enter your name',
 
