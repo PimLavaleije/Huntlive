@@ -114,8 +114,8 @@ export default function PlayPage() {
       setPhaseModal({ title: '🏃 Jacht begonnen!', body: 'De voorsprong is voorbij. Het spel is actief.' })
     } else {
       setPhaseModal({
-        title: '🏃 Jacht begonnen!',
-        body: `De boef heeft ${game.headstart_minutes} min. voorsprong gehad. Je ziet zijn locatie op de kaart.`,
+        title: '🚨 Ga nu zoeken!',
+        body: `De voorsprong is voorbij — de jacht is open! Je ziet de laatste locatie van de boef op de kaart.`,
       })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -349,7 +349,7 @@ export default function PlayPage() {
     : undefined
 
   const timerSeconds = game.status === 'headstart' ? headstartLeft : gameLeft
-  const timerLabel = game.status === 'headstart' ? 'Voorsprong' : 'Tijd over'
+  const timerLabel = game.status === 'headstart' ? 'Voorsprong' : 'Speeltijd over'
 
   const statusColor = game.status === 'headstart' ? 'bg-orange-500' : game.status === 'active' ? 'bg-red-500' : 'bg-yellow-500'
 
@@ -389,6 +389,11 @@ export default function PlayPage() {
             <p className={`font-mono font-black text-2xl tabular-nums leading-none ${timerSeconds < 60 ? 'text-red-400' : 'text-white'}`}>
               {String(Math.floor(timerSeconds / 60)).padStart(2, '0')}:{String(timerSeconds % 60).padStart(2, '0')}
             </p>
+            {game.status === 'headstart' && gameLeft > 0 && (
+              <p className="font-mono text-xs tabular-nums text-gray-500 leading-none mt-1">
+                spel {String(Math.floor(gameLeft / 60)).padStart(2, '0')}:{String(gameLeft % 60).padStart(2, '0')}
+              </p>
+            )}
           </div>
         </div>
 
