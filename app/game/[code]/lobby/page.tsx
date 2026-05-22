@@ -27,7 +27,6 @@ export default function LobbyPage() {
     setPlayerId(id)
   }, [code, router])
 
-  // Navigate to play screen when game starts
   useEffect(() => {
     if (game?.status === 'headstart' || game?.status === 'active') {
       router.push(`/game/${code}/play`)
@@ -77,11 +76,11 @@ export default function LobbyPage() {
   if (error || !game) return <ErrorScreen message={error ?? 'Spel niet gevonden'} />
 
   return (
-    <main className="min-h-svh bg-gray-900 text-white flex flex-col">
+    <main className="min-h-svh text-white flex flex-col" style={{ background: '#000000' }}>
       {/* Header */}
-      <div className="px-4 py-4 border-b border-gray-800">
+      <div className="px-4 py-4" style={{ borderBottom: '1px solid #1a2540' }}>
         <div className="flex items-center justify-between">
-          <h1 className="font-bold text-lg">{game.name}</h1>
+          <h1 className="font-black tracking-widest uppercase text-white text-sm">{game.name}</h1>
           {currentPlayer && <RoleBadge role={currentPlayer.role} />}
         </div>
       </div>
@@ -92,7 +91,7 @@ export default function LobbyPage() {
         {/* Game code share */}
         <Card>
           <div className="text-center">
-            <p className="text-xs text-gray-500 mb-2">Deel deze code met je vrienden</p>
+            <p className="text-xs text-gray-600 uppercase tracking-widest mb-2">Deel deze code met je vrienden</p>
             <div className="font-mono text-4xl font-black tracking-widest text-white mb-3">{code}</div>
             <div className="flex gap-2 justify-center">
               <Button variant="ghost" size="sm" onClick={handleCopyCode}>
@@ -107,8 +106,8 @@ export default function LobbyPage() {
 
         {/* Game settings summary */}
         <Card>
-          <p className="text-xs text-gray-500 mb-3 font-semibold uppercase tracking-widest">Spel-instellingen</p>
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          <p className="text-xs font-black tracking-widest uppercase text-gray-500 mb-3">Spel-instellingen</p>
+          <div className="grid grid-cols-2 gap-2">
             {[
               ['Speelduur', `${game.duration_minutes} min`],
               ['Voorsprong', `${game.headstart_minutes} min`],
@@ -116,14 +115,14 @@ export default function LobbyPage() {
               ['Vangradius', `${game.capture_radius_meters}m`],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between">
-                <span className="text-gray-500">{k}</span>
-                <span className="font-medium">{v}</span>
+                <span className="text-gray-600 text-xs">{k}</span>
+                <span className="text-white font-bold text-xs">{v}</span>
               </div>
             ))}
           </div>
           {game.rules_text && (
-            <div className="mt-3 pt-3 border-t border-gray-700">
-              <p className="text-xs text-gray-500 mb-1">Regels</p>
+            <div className="mt-3 pt-3" style={{ borderTop: '1px solid #1a2540' }}>
+              <p className="text-xs text-gray-600 mb-1 uppercase tracking-widest">Regels</p>
               <p className="text-sm text-gray-300">{game.rules_text}</p>
             </div>
           )}
@@ -132,7 +131,7 @@ export default function LobbyPage() {
         {/* Players */}
         <Card>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest">
+            <p className="text-xs font-black tracking-widest uppercase text-gray-500">
               Spelers ({players.length})
             </p>
             {!hasFugitive && (
@@ -161,17 +160,18 @@ export default function LobbyPage() {
               disabled={!hasFugitive || players.length < 2}
               onClick={handleStart}
               className="w-full"
+              style={{ background: 'linear-gradient(135deg, #6b0000, #b91c1c, #991b1b)', border: '1px solid #ef4444', boxShadow: '0 0 24px rgba(239,68,68,0.35)' }}
             >
               🚀 Spel starten
             </Button>
             {players.length < 2 && (
-              <p className="text-center text-gray-500 text-xs">Wacht op meer spelers...</p>
+              <p className="text-center text-gray-600 text-xs tracking-widest uppercase">Wacht op meer spelers...</p>
             )}
           </div>
         )}
 
         {!isHost && (
-          <div className="text-center text-gray-500 text-sm py-4">
+          <div className="text-center text-gray-600 text-xs py-4 tracking-widest uppercase">
             Wacht tot de spelleider het spel start...
           </div>
         )}
@@ -182,8 +182,8 @@ export default function LobbyPage() {
 
 function LoadingScreen() {
   return (
-    <div className="min-h-svh bg-gray-900 flex items-center justify-center">
-      <div className="text-gray-400">Lobby laden...</div>
+    <div className="min-h-svh flex items-center justify-center" style={{ background: '#000000' }}>
+      <div className="text-gray-600 tracking-widest uppercase text-xs">Lobby laden...</div>
     </div>
   )
 }
@@ -191,7 +191,7 @@ function LoadingScreen() {
 function ErrorScreen({ message }: { message: string }) {
   const router = useRouter()
   return (
-    <div className="min-h-svh bg-gray-900 flex flex-col items-center justify-center gap-4">
+    <div className="min-h-svh flex flex-col items-center justify-center gap-4" style={{ background: '#000000' }}>
       <p className="text-red-400">{message}</p>
       <Button onClick={() => router.push('/')}>Terug naar home</Button>
     </div>

@@ -1,9 +1,13 @@
 import { type HTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
-export function Card({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
+export function Card({ className, children, style, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('bg-gray-800 border border-gray-700 rounded-2xl p-4', className)} {...props}>
+    <div
+      className={cn('rounded-2xl p-4', className)}
+      style={{ background: '#0d1018', border: '1px solid #1a2540', ...style }}
+      {...props}
+    >
       {children}
     </div>
   )

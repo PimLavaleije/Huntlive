@@ -34,7 +34,6 @@ export default function CreateGamePage() {
     try {
       const code = generateGameCode()
 
-      // Create game
       const { data: game, error: gameErr } = await supabase.from('games').insert({
         code,
         name: settings.name || `Spel ${code}`,
@@ -56,7 +55,6 @@ export default function CreateGamePage() {
 
       if (gameErr || !game) throw new Error(gameErr?.message ?? 'Spel aanmaken mislukt')
 
-      // Create host player
       const { data: player, error: playerErr } = await supabase.from('players').insert({
         game_id: game.id,
         user_name: hostName.trim(),
@@ -67,7 +65,6 @@ export default function CreateGamePage() {
 
       if (playerErr || !player) throw new Error(playerErr?.message ?? 'Speler aanmaken mislukt')
 
-      // Store player id in sessionStorage for this session
       sessionStorage.setItem(`player_${code}`, player.id)
       sessionStorage.setItem(`player_name_${code}`, hostName.trim())
 
@@ -80,20 +77,23 @@ export default function CreateGamePage() {
   }
 
   return (
-    <main className="min-h-svh bg-gray-900 text-white flex flex-col">
+    <main className="min-h-svh text-white flex flex-col" style={{ background: '#000000' }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-800">
-        <button onClick={() => router.back()} className="text-gray-400 hover:text-white p-1">
+      <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: '1px solid #1a2540' }}>
+        <button
+          onClick={() => router.back()}
+          className="text-gray-500 hover:text-white transition-colors p-1 text-sm tracking-widest uppercase font-bold"
+        >
           ← Terug
         </button>
-        <h1 className="font-bold text-lg">Nieuw spel aanmaken</h1>
+        <h1 className="font-black tracking-widest uppercase text-white text-sm">Nieuw spel aanmaken</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-6 max-w-lg mx-auto w-full">
         {step === 'settings' ? (
           <div className="flex flex-col gap-5">
             <Card>
-              <h2 className="font-semibold text-gray-200 mb-4">Spel-instellingen</h2>
+              <h2 className="font-black tracking-widest uppercase text-xs text-gray-400 mb-4">Spel-instellingen</h2>
               <div className="flex flex-col gap-4">
                 <Input
                   label="Spelnaam (optioneel)"
@@ -158,9 +158,9 @@ export default function CreateGamePage() {
               </div>
             </Card>
 
-            {/* Preview */}
-            <Card className="bg-gray-800/50">
-              <h3 className="text-sm font-medium text-gray-400 mb-3">Samenvatting</h3>
+            {/* Summary */}
+            <Card>
+              <h3 className="font-black tracking-widest uppercase text-xs text-gray-400 mb-3">Samenvatting</h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 {[
                   ['Speelduur', `${settings.duration_minutes} min`],
@@ -169,8 +169,8 @@ export default function CreateGamePage() {
                   ['Vangradius', `${settings.capture_radius_meters}m`],
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between">
-                    <span className="text-gray-500">{k}</span>
-                    <span className="text-white font-medium">{v}</span>
+                    <span className="text-gray-600 text-xs">{k}</span>
+                    <span className="text-white font-bold text-xs">{v}</span>
                   </div>
                 ))}
               </div>
@@ -183,7 +183,7 @@ export default function CreateGamePage() {
         ) : (
           <div className="flex flex-col gap-5">
             <Card>
-              <h2 className="font-semibold text-gray-200 mb-4">Jouw naam als spelleider</h2>
+              <h2 className="font-black tracking-widest uppercase text-xs text-gray-400 mb-4">Jouw naam als spelleider</h2>
               <Input
                 label="Je naam"
                 placeholder="bijv. Max"
@@ -199,7 +199,13 @@ export default function CreateGamePage() {
               <Button variant="ghost" size="lg" onClick={() => setStep('settings')} className="flex-1">
                 ← Terug
               </Button>
-              <Button size="lg" loading={loading} onClick={handleCreate} className="flex-1">
+              <Button
+                size="lg"
+                loading={loading}
+                onClick={handleCreate}
+                className="flex-1"
+                style={{ background: 'linear-gradient(135deg, #6b0000, #b91c1c, #991b1b)', border: '1px solid #ef4444', boxShadow: '0 0 20px rgba(239,68,68,0.3)' }}
+              >
                 Spel aanmaken 🎯
               </Button>
             </div>

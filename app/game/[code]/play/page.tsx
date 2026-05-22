@@ -300,7 +300,7 @@ export default function PlayPage() {
   }
 
   if (!game || !currentPlayer) {
-    return <div className="min-h-svh bg-gray-900 flex items-center justify-center text-gray-400">Laden...</div>
+    return <div className="min-h-svh flex items-center justify-center text-gray-600 tracking-widest uppercase text-xs" style={{ background: '#000000' }}>Laden...</div>
   }
 
   const distanceToFugitive =
@@ -355,7 +355,7 @@ export default function PlayPage() {
 
   return (
     // Full viewport layout — map fills everything
-    <div className="fixed inset-0 bg-gray-900 flex flex-col">
+    <div className="fixed inset-0 flex flex-col" style={{ background: '#000000' }}>
 
       {/* ── MAP (fills all remaining space) ── */}
       <div className="flex-1 relative">
@@ -374,7 +374,7 @@ export default function PlayPage() {
         {/* ── TOP OVERLAY ── */}
         <div className="absolute top-0 left-0 right-0 z-[500] p-3 flex items-start justify-between pointer-events-none">
           {/* Left: game name + role */}
-          <div className="bg-gray-900/85 backdrop-blur-sm rounded-xl px-3 py-2 flex flex-col gap-1 pointer-events-auto border border-gray-700">
+          <div className="backdrop-blur-sm rounded-xl px-3 py-2 flex flex-col gap-1 pointer-events-auto" style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid #1a2540' }}>
             <span className="font-bold text-white text-sm leading-none">{game.name}</span>
             <div className="flex items-center gap-2">
               <RoleBadge role={currentPlayer.role} />
@@ -383,7 +383,7 @@ export default function PlayPage() {
           </div>
 
           {/* Right: timer */}
-          <div className="bg-gray-900/85 backdrop-blur-sm rounded-xl px-3 py-2 pointer-events-auto border border-gray-700 text-center">
+          <div className="backdrop-blur-sm rounded-xl px-3 py-2 pointer-events-auto text-center" style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid #1a2540' }}>
             <p className="text-xs text-gray-400 leading-none mb-1">{timerLabel}</p>
             <p className={`font-mono font-black text-2xl tabular-nums leading-none ${timerSeconds < 60 ? 'text-red-400' : 'text-white'}`}>
               {String(Math.floor(timerSeconds / 60)).padStart(2, '0')}:{String(timerSeconds % 60).padStart(2, '0')}
@@ -400,7 +400,7 @@ export default function PlayPage() {
 
         {/* ── GPS STATUS (bottom-right of map, above panel toggle) ── */}
         <div className="absolute bottom-16 right-3 z-[500] pointer-events-none">
-          <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg px-2 py-1 border border-gray-700">
+          <div className="backdrop-blur-sm rounded-lg px-2 py-1" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid #1a2540' }}>
             <LocationStatus accuracy={accuracy} error={geoError} loading={geoLoading} />
           </div>
         </div>
@@ -408,7 +408,8 @@ export default function PlayPage() {
         {/* ── PANEL TOGGLE BUTTON ── */}
         <button
           onClick={() => setPanelOpen((o) => !o)}
-          className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[500] bg-gray-800/90 hover:bg-gray-700 backdrop-blur-sm text-white rounded-full px-5 py-2 text-sm font-medium border border-gray-600 flex items-center gap-2 shadow-lg"
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[500] backdrop-blur-sm text-white rounded-full px-5 py-2 text-sm font-medium flex items-center gap-2 shadow-lg transition-colors"
+          style={{ background: 'rgba(0,0,0,0.9)', border: '1px solid #1a2540' }}
         >
           {panelOpen ? '▼ Verberg acties' : '▲ Toon acties'}
         </button>
@@ -420,7 +421,7 @@ export default function PlayPage() {
           className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/75 backdrop-blur-sm"
           onClick={() => setPhaseModal(null)}
         >
-          <div className="bg-gray-800 border border-gray-600 rounded-2xl p-6 max-w-sm mx-4 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="rounded-2xl p-6 max-w-sm mx-4 text-center shadow-2xl" style={{ background: '#0d1018', border: '1px solid #1a2540' }} onClick={(e) => e.stopPropagation()}>
             <p className="text-2xl font-bold text-white mb-2">{phaseModal.title}</p>
             <p className="text-gray-300 text-sm mb-5">{phaseModal.body}</p>
             <button
@@ -435,7 +436,7 @@ export default function PlayPage() {
 
       {/* ── BOTTOM PANEL (collapsible) ── */}
       {panelOpen && (
-        <div className="bg-gray-900 border-t border-gray-700 px-4 py-3 flex flex-col gap-3 max-h-[45vh] overflow-y-auto">
+        <div className="px-4 py-3 flex flex-col gap-3 max-h-[45vh] overflow-y-auto" style={{ background: '#000000', borderTop: '1px solid #1a2540' }}>
 
           {/* Fugitive info */}
           {isFugitive && game.status === 'active' && (
@@ -495,7 +496,8 @@ export default function PlayPage() {
                 </div>
                 <button
                   onClick={() => setShowTeamEditor((o) => !o)}
-                  className="w-full text-sm text-gray-300 bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-xl px-4 py-2 flex items-center justify-between"
+                  className="w-full text-sm text-gray-300 rounded-xl px-4 py-2 flex items-center justify-between transition-colors"
+                  style={{ background: '#0d1018', border: '1px solid #1a2540' }}
                 >
                   <span>👥 Teams wijzigen</span>
                   <span>{showTeamEditor ? '▲' : '▼'}</span>
@@ -503,7 +505,7 @@ export default function PlayPage() {
                 {showTeamEditor && (
                   <div className="flex flex-col gap-2">
                     {players.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between bg-gray-800 rounded-xl px-3 py-2">
+                      <div key={p.id} className="flex items-center justify-between rounded-xl px-3 py-2" style={{ background: '#0d1018', border: '1px solid #1a2540' }}>
                         <span className="text-white text-sm font-medium truncate max-w-[100px]">{p.user_name}</span>
                         <div className="flex gap-1">
                           {([['fugitive', '🟡 Boef'], ['hunter', '🔴 Jager'], ['admin', '🔵 Leider']] as [PlayerRole, string][]).map(([role, label]) => (
@@ -515,7 +517,7 @@ export default function PlayPage() {
                                   ? role === 'fugitive' ? 'bg-yellow-500 border-yellow-400 text-black font-bold'
                                     : role === 'hunter' ? 'bg-red-600 border-red-500 text-white font-bold'
                                     : 'bg-blue-600 border-blue-500 text-white font-bold'
-                                  : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                                  : 'text-gray-500'
                               }`}
                             >
                               {label}

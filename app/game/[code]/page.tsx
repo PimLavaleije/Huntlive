@@ -18,7 +18,6 @@ export default function JoinGamePage() {
   const [gamePreview, setGamePreview] = useState<{ name: string; status: string; playerCount: number } | null>(null)
   const [previewing, setPreviewing] = useState(false)
 
-  // Load game preview on first render
   useState(() => {
     const loadPreview = async () => {
       setPreviewing(true)
@@ -44,7 +43,6 @@ export default function JoinGamePage() {
       if (!game) throw new Error('Spel niet gevonden')
       if (game.status === 'finished') throw new Error('Dit spel is al afgelopen')
 
-      // Check if name is already taken
       const { data: existing } = await supabase
         .from('players')
         .select('id')
@@ -76,24 +74,29 @@ export default function JoinGamePage() {
   }
 
   return (
-    <main className="min-h-svh bg-gray-900 text-white flex flex-col">
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-800">
-        <button onClick={() => router.push('/')} className="text-gray-400 hover:text-white">← Home</button>
-        <h1 className="font-bold text-lg font-mono tracking-widest">{code}</h1>
+    <main className="min-h-svh text-white flex flex-col" style={{ background: '#000000' }}>
+      <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: '1px solid #1a2540' }}>
+        <button
+          onClick={() => router.push('/')}
+          className="text-gray-500 hover:text-white transition-colors text-sm tracking-widest uppercase font-bold"
+        >
+          ← Home
+        </button>
+        <h1 className="font-black tracking-widest font-mono text-white">{code}</h1>
       </div>
 
       <div className="flex-1 flex flex-col justify-center px-5 max-w-sm mx-auto w-full gap-5 py-8">
         {previewing ? (
-          <div className="text-center text-gray-400">Spel laden...</div>
+          <div className="text-center text-gray-500 tracking-widest uppercase text-xs">Spel laden...</div>
         ) : gamePreview ? (
           <>
             <Card className="text-center">
-              <p className="text-xs text-gray-500 mb-1">Je gaat joinen:</p>
-              <h2 className="font-bold text-xl text-white">{gamePreview.name}</h2>
+              <p className="text-xs text-gray-600 uppercase tracking-widest mb-1">Je gaat joinen:</p>
+              <h2 className="font-black text-xl text-white mt-1">{gamePreview.name}</h2>
               <div className="mt-2">
                 <GameStatusBanner status={gamePreview.status as never} />
               </div>
-              <p className="text-sm text-gray-400 mt-2">{gamePreview.playerCount} spelers joined</p>
+              <p className="text-xs text-gray-500 mt-2 tracking-widest">{gamePreview.playerCount} spelers joined</p>
             </Card>
 
             <Input
