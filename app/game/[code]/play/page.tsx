@@ -6,7 +6,7 @@ import { useGeolocation } from '@/hooks/useGeolocation'
 import { useGameTimer } from '@/hooks/useGameTimer'
 import { supabase, saveLocation } from '@/lib/supabase-client'
 import { haversineDistance, formatDistance } from '@/lib/distance'
-import { isLocationSnapshotMoment, formatRelativeTime } from '@/lib/game-state'
+import { formatRelativeTime } from '@/lib/game-state'
 import { requestWakeLock } from '@/lib/geolocation'
 import { MapView } from '@/components/MapView'
 import { LocationStatus } from '@/components/LocationStatus'
@@ -140,20 +140,39 @@ export default function PlayPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.status])
 
-  // Save location every 8 seconds for all active players
+  // Auto-advance game phases based on server timestamps (all clients try; status filter makes it idempotent)
+  useEffect(() => {
+    if (!game?.id) return
+    if (game.status !== 'headstart' && game.status !== 'active') return
+
+    const check = async () => {
+      const now = Date.now()
+      if (game.status === 'headstart' && game.active_at && now >= new Date(game.active_at).getTime()) {
+        await supabase.from('games').update({ status: 'active' }).eq('id', game.id).eq('status', 'headstart')
+      } else if (game.status === 'active' && game.ends_at && now >= new Date(game.ends_at).getTime()) {
+        await supabase.from('games').update({ status: 'finished', winner: 'fugitive' }).eq('id', game.id).eq('status', 'active')
+      }
+    }
+
+    check()
+    const tid = setInterval(check, 5000)
+    return () => clearInterval(tid)
+  }, [game?.id, game?.status, game?.active_at, game?.ends_at])
+
+  // Save location every 8 seconds; fugitive location becomes visible at each configured interval
   useEffect(() => {
     if (!game || !playerId || !position) return
     if (game.status !== 'headstart' && game.status !== 'active') return
 
     const interval = setInterval(async () => {
       let shouldBeVisible = false
-      if (isFugitive) {
-        shouldBeVisible =
-          game.status === 'active' &&
-          isLocationSnapshotMoment(game) &&
-          Date.now() - lastSnapshotRef.current > 30_000
-        if (shouldBeVisible) {
-          lastSnapshotRef.current = Date.now()
+      if (isFugitive && game.status === 'active' && game.active_at) {
+        const intervalMs = game.location_interval_minutes * 60 * 1000
+        const elapsed = Date.now() - new Date(game.active_at).getTime()
+        const completedIntervals = Math.floor(elapsed / intervalMs)
+        if (completedIntervals > lastSnapshotRef.current) {
+          lastSnapshotRef.current = completedIntervals
+          shouldBeVisible = true
           showNotification('📡 Locaties gedeeld — jagers zien jou, jij ziet de jagers!')
           fetchHunterSnapshot(game.id)
         }
@@ -162,7 +181,7 @@ export default function PlayPage() {
     }, 8000)
 
     return () => clearInterval(interval)
-  }, [isFugitive, game, playerId, position, showNotification])
+  }, [isFugitive, game, playerId, position, showNotification, fetchHunterSnapshot])
 
   // Admin: track all player locations in realtime
   useEffect(() => {
