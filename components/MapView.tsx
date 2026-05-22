@@ -63,8 +63,9 @@ export function MapView({
       const initialCenter: [number, number] = center ?? [52.3676, 4.9041]
       const map = L.map(mapRef.current!, { zoomControl: true }).setView(initialCenter, zoom)
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
         maxZoom: 19,
       }).addTo(map)
 
