@@ -8,7 +8,6 @@ import { supabase, saveLocation } from '@/lib/supabase-client'
 import { haversineDistance, formatDistance } from '@/lib/distance'
 import { isLocationSnapshotMoment, formatRelativeTime } from '@/lib/game-state'
 import { requestWakeLock } from '@/lib/geolocation'
-import { GameTimer } from '@/components/GameTimer'
 import { MapView } from '@/components/MapView'
 import { LocationStatus } from '@/components/LocationStatus'
 import { CaptureButton } from '@/components/CaptureButton'
@@ -403,8 +402,8 @@ export default function PlayPage() {
           </div>
         )}
 
-        {/* ── GPS STATUS (bottom-right) ── */}
-        <div className="absolute bottom-16 right-3 z-[500] pointer-events-none">
+        {/* ── GPS STATUS (top-left, below player panel) ── */}
+        <div className="absolute z-[500] pointer-events-none" style={{ top: '96px', left: '12px' }}>
           <div className="backdrop-blur-sm rounded-lg px-2 py-1" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid #1a2540' }}>
             <LocationStatus accuracy={accuracy} error={geoError} loading={geoLoading} />
           </div>
