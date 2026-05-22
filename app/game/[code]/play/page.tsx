@@ -384,7 +384,7 @@ export default function PlayPage() {
           {/* Right: timer */}
           <div className="backdrop-blur-sm rounded-xl px-3 py-2 pointer-events-auto text-center" style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid #1a2540' }}>
             <p className="text-xs text-gray-400 leading-none mb-1">{timerLabel}</p>
-            <p className={`font-mono font-black text-2xl tabular-nums leading-none ${timerSeconds < 60 ? 'text-red-400' : 'text-white'}`}>
+            <p className={`font-mono font-black text-2xl tabular-nums leading-none ${game.status === 'active' && gameLeft < 300 ? 'text-red-400' : 'text-white'}`}>
               {String(Math.floor(timerSeconds / 60)).padStart(2, '0')}:{String(timerSeconds % 60).padStart(2, '0')}
             </p>
             {game.status === 'headstart' && gameLeft > 0 && (
