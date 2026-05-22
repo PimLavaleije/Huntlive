@@ -160,7 +160,8 @@ export function MapView({
         {markers.some((m) => m.isSelf) && (
           <button
             onClick={handleCenterOnSelf}
-            className="absolute bottom-10 right-2 z-[1000] bg-gray-900/90 hover:bg-gray-800 text-white rounded-lg p-2 border border-gray-600 transition-colors shadow-lg"
+            className="absolute z-[1000] text-white rounded-lg p-2 transition-colors shadow-lg"
+            style={{ top: '96px', left: '12px', background: 'rgba(0,0,0,0.85)', border: '1px solid #1a2540' }}
             title="Centreer op mijn locatie"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
