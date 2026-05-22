@@ -29,6 +29,7 @@ export default function PlayPage() {
   const [hunterLocations, setHunterLocations] = useState<Map<string, { lat: number; lng: number }>>(new Map())
   const [phaseModal, setPhaseModal] = useState<{ title: string; body: string } | null>(null)
   const [showTeamEditor, setShowTeamEditor] = useState(false)
+  const [teamLocations, setTeamLocations] = useState<Map<string, { lat: number; lng: number }>>(new Map())
   const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSnapshotRef = useRef<number>(0)
   const prevGameStatusRef = useRef<string | null>(null)
@@ -180,6 +181,56 @@ export default function PlayPage() {
     return () => { supabase.removeChannel(channel) }
   }, [isAdmin, game])
 
+  // Live teammate positions — hunters always see hunters, fugitives always see fugitives
+  useEffect(() => {
+    if (!game || !playerId || isAdmin) return
+
+    const teammateIds = playersRef.current
+      .filter((p) => p.id !== playerId && (isFugitive ? p.role === 'fugitive' : p.role === 'hunter' || p.role === 'admin'))
+      .map((p) => p.id)
+
+    if (teammateIds.length > 0) {
+      supabase
+        .from('locations')
+        .select('*')
+        .eq('game_id', game.id)
+        .in('player_id', teammateIds)
+        .order('created_at', { ascending: false })
+        .limit(teammateIds.length * 3)
+        .then(({ data }) => {
+          if (!data) return
+          const latest = new Map<string, { lat: number; lng: number }>()
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data.forEach((loc: any) => {
+            if (!latest.has(loc.player_id)) latest.set(loc.player_id, { lat: loc.latitude, lng: loc.longitude })
+          })
+          setTeamLocations(latest)
+        })
+    }
+
+    const channel = supabase
+      .channel(`team-locs-${game.id}-${playerId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'locations', filter: `game_id=eq.${game.id}` }, (payload) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const loc = payload.new as any
+        if (loc.player_id === playerId) return
+        const teammate = playersRef.current.find((p) => p.id === loc.player_id)
+        if (!teammate) return
+        const isTeammate = isFugitive
+          ? teammate.role === 'fugitive'
+          : teammate.role === 'hunter' || teammate.role === 'admin'
+        if (!isTeammate) return
+        setTeamLocations((prev) => {
+          const next = new Map(prev)
+          next.set(loc.player_id, { lat: loc.latitude, lng: loc.longitude })
+          return next
+        })
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [game?.id, playerId, isAdmin, isFugitive])
+
   // Warn fugitive 30s before share
   useEffect(() => {
     if (!isFugitive || !game || game.status !== 'active') return
@@ -270,6 +321,16 @@ export default function PlayPage() {
     hunterLocations.forEach((loc, pid) => {
       const player = players.find((p) => p.id === pid)
       mapMarkers.push({ lat: loc.lat, lng: loc.lng, type: 'hunter' as const, label: player?.user_name ?? 'Jager' })
+    })
+  }
+
+  // Live teammate markers (always visible, same team)
+  if (!isAdmin) {
+    teamLocations.forEach((loc, pid) => {
+      const player = players.find((p) => p.id === pid)
+      if (!player) return
+      const type = player.role === 'fugitive' ? 'fugitive' as const : 'hunter' as const
+      mapMarkers.push({ lat: loc.lat, lng: loc.lng, type, label: `${player.user_name} (team)` })
     })
   }
 
