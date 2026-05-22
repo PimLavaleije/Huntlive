@@ -29,6 +29,7 @@ export default function PlayPage() {
   const [phaseModal, setPhaseModal] = useState<{ title: string; body: string } | null>(null)
   const [showTeamEditor, setShowTeamEditor] = useState(false)
   const [teamLocations, setTeamLocations] = useState<Map<string, { lat: number; lng: number }>>(new Map())
+  const [fugitiveSnapshot, setFugitiveSnapshot] = useState<{ lat: number; lng: number; playerId: string } | null>(null)
   const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSnapshotRef = useRef<number>(0)
   const prevGameStatusRef = useRef<string | null>(null)
@@ -75,6 +76,22 @@ export default function PlayPage() {
   }, [latestFugitiveLocation, isHunter, showNotification])
 
   // Fetch static snapshot of hunter positions (for fugitive view)
+  const fetchFugitiveSnapshot = useCallback(async (gameId: string) => {
+    const fugitiveIds = playersRef.current.filter((p) => p.role === 'fugitive').map((p) => p.id)
+    if (fugitiveIds.length === 0) return
+    const { data } = await supabase
+      .from('locations')
+      .select('*')
+      .eq('game_id', gameId)
+      .in('player_id', fugitiveIds)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    if (!data?.[0]) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const loc = data[0] as any
+    setFugitiveSnapshot({ lat: loc.latitude, lng: loc.longitude, playerId: loc.player_id })
+  }, [])
+
   const fetchHunterSnapshot = useCallback(async (gameId: string) => {
     const hunterIds = playersRef.current
       .filter((p) => p.role === 'hunter' || p.role === 'admin')
@@ -109,6 +126,7 @@ export default function PlayPage() {
         body: 'De voorsprong is voorbij. Jagers weten nu waar je bent. Je ziet hun startlocaties op de kaart.',
       })
       fetchHunterSnapshot(game.id)
+      showNotification('📍 Locaties gedeeld — je ziet de startposities van de jagers!')
     } else if (isAdmin) {
       setPhaseModal({ title: '🏃 Jacht begonnen!', body: 'De voorsprong is voorbij. Het spel is actief.' })
     } else {
@@ -116,6 +134,8 @@ export default function PlayPage() {
         title: '🚨 Ga nu zoeken!',
         body: `De voorsprong is voorbij — de jacht is open! Je ziet de laatste locatie van de boef op de kaart.`,
       })
+      fetchFugitiveSnapshot(game.id)
+      showNotification('📍 Locaties gedeeld — je ziet de startpositie van de boef!')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.status])
@@ -321,8 +341,13 @@ export default function PlayPage() {
       const type = player.role === 'fugitive' ? 'fugitive' as const : player.role === 'admin' ? 'admin' as const : 'hunter' as const
       mapMarkers.push({ lat: loc.lat, lng: loc.lng, type, label: player.user_name })
     })
-  } else if (isHunter && latestFugitiveLocation) {
-    mapMarkers.push({ lat: latestFugitiveLocation.latitude, lng: latestFugitiveLocation.longitude, type: 'fugitive' as const, label: `Boef – ${formatRelativeTime(latestFugitiveLocation.created_at)}` })
+  } else if (isHunter) {
+    if (latestFugitiveLocation) {
+      mapMarkers.push({ lat: latestFugitiveLocation.latitude, lng: latestFugitiveLocation.longitude, type: 'fugitive' as const, label: `Boef – ${formatRelativeTime(latestFugitiveLocation.created_at)}` })
+    } else if (fugitiveSnapshot) {
+      const fp = players.find((p) => p.id === fugitiveSnapshot.playerId)
+      mapMarkers.push({ lat: fugitiveSnapshot.lat, lng: fugitiveSnapshot.lng, type: 'fugitive' as const, label: `${fp?.user_name ?? 'Boef'} – startpositie` })
+    }
   } else if (isFugitive) {
     hunterLocations.forEach((loc, pid) => {
       const player = players.find((p) => p.id === pid)
