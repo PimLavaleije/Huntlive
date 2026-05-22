@@ -373,14 +373,13 @@ export default function PlayPage() {
 
         {/* ── TOP OVERLAY ── */}
         <div className="absolute top-0 left-0 right-0 z-[500] p-3 flex items-start justify-between pointer-events-none">
-          {/* Left: game name + role + GPS */}
+          {/* Left: game name + role */}
           <div className="backdrop-blur-sm rounded-xl px-3 py-2 flex flex-col gap-1 pointer-events-auto" style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid #1a2540' }}>
             <span className="font-bold text-white text-sm leading-none">{game.name}</span>
             <div className="flex items-center gap-2">
               <RoleBadge role={currentPlayer.role} />
               <span className={`w-2 h-2 rounded-full ${statusColor}`} />
             </div>
-            <LocationStatus accuracy={accuracy} error={geoError} loading={geoLoading} />
           </div>
 
           {/* Right: timer */}
@@ -403,6 +402,13 @@ export default function PlayPage() {
             {notification}
           </div>
         )}
+
+        {/* ── GPS STATUS (bottom-right) ── */}
+        <div className="absolute bottom-16 right-3 z-[500] pointer-events-none">
+          <div className="backdrop-blur-sm rounded-lg px-2 py-1" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid #1a2540' }}>
+            <LocationStatus accuracy={accuracy} error={geoError} loading={geoLoading} />
+          </div>
+        </div>
 
         {/* ── PANEL TOGGLE BUTTON ── */}
         <button
