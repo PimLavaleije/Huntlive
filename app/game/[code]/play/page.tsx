@@ -25,6 +25,7 @@ export default function PlayPage() {
   const [playerId, setPlayerId] = useState<string | null>(null)
   const [notification, setNotification] = useState<string | null>(null)
   const [panelOpen, setPanelOpen] = useState(true)
+  const [allPlayerLocations, setAllPlayerLocations] = useState<Map<string, { lat: number; lng: number }>>(new Map())
   const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSnapshotRef = useRef<number>(0)
 
@@ -65,27 +66,64 @@ export default function PlayPage() {
     }
   }, [latestFugitiveLocation, isHunter, showNotification])
 
-  // Save fugitive location every 8 seconds
+  // Save location every 8 seconds for all active players
   useEffect(() => {
-    if (!isFugitive || !game || !playerId || !position) return
+    if (!game || !playerId || !position) return
     if (game.status !== 'headstart' && game.status !== 'active') return
 
     const interval = setInterval(async () => {
-      const shouldBeVisible =
-        game.status === 'active' &&
-        isLocationSnapshotMoment(game) &&
-        Date.now() - lastSnapshotRef.current > 30_000
-
-      if (shouldBeVisible) {
-        lastSnapshotRef.current = Date.now()
-        showNotification('📡 Je locatie is gedeeld met de jagers!')
+      let shouldBeVisible = false
+      if (isFugitive) {
+        shouldBeVisible =
+          game.status === 'active' &&
+          isLocationSnapshotMoment(game) &&
+          Date.now() - lastSnapshotRef.current > 30_000
+        if (shouldBeVisible) {
+          lastSnapshotRef.current = Date.now()
+          showNotification('📡 Je locatie is gedeeld met de jagers!')
+        }
       }
-
       await saveLocation(game.id, playerId, position.latitude, position.longitude, position.accuracy, shouldBeVisible)
     }, 8000)
 
     return () => clearInterval(interval)
   }, [isFugitive, game, playerId, position, showNotification])
+
+  // Admin: track all player locations in realtime
+  useEffect(() => {
+    if (!isAdmin || !game) return
+
+    supabase
+      .from('locations')
+      .select('*')
+      .eq('game_id', game.id)
+      .order('created_at', { ascending: false })
+      .limit(100)
+      .then(({ data }) => {
+        if (!data) return
+        const latest = new Map<string, { lat: number; lng: number }>()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data.forEach((loc: any) => {
+          if (!latest.has(loc.player_id)) latest.set(loc.player_id, { lat: loc.latitude, lng: loc.longitude })
+        })
+        setAllPlayerLocations(latest)
+      })
+
+    const channel = supabase
+      .channel(`admin-locs-${game.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'locations', filter: `game_id=eq.${game.id}` }, (payload) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const loc = payload.new as any
+        setAllPlayerLocations((prev) => {
+          const next = new Map(prev)
+          next.set(loc.player_id, { lat: loc.latitude, lng: loc.longitude })
+          return next
+        })
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [isAdmin, game])
 
   // Warn fugitive 30s before share
   useEffect(() => {
@@ -159,7 +197,15 @@ export default function PlayPage() {
   if (position) {
     mapMarkers.push({ lat: position.latitude, lng: position.longitude, type: 'self' as const, label: `Jij (${currentPlayer.user_name})` })
   }
-  if (isHunter && latestFugitiveLocation) {
+  if (isAdmin) {
+    allPlayerLocations.forEach((loc, pid) => {
+      if (pid === playerId) return
+      const player = players.find((p) => p.id === pid)
+      if (!player) return
+      const type = player.role === 'fugitive' ? 'fugitive' as const : 'hunter' as const
+      mapMarkers.push({ lat: loc.lat, lng: loc.lng, type, label: player.user_name })
+    })
+  } else if (isHunter && latestFugitiveLocation) {
     mapMarkers.push({ lat: latestFugitiveLocation.latitude, lng: latestFugitiveLocation.longitude, type: 'fugitive' as const, label: `Boef – ${formatRelativeTime(latestFugitiveLocation.created_at)}` })
   }
 
@@ -189,7 +235,6 @@ export default function PlayPage() {
               ? { lat: game.geofence_center_lat, lng: game.geofence_center_lng!, radius: game.geofence_radius_meters }
               : null
           }
-          showFullscreenButton
           className="w-full h-full"
         />
 
