@@ -111,6 +111,7 @@ export default function HomePage() {
         {error && <p className="text-red-400 mt-1.5 ml-1" style={{ fontSize: '0.75rem' }}>{error}</p>}
       </div>
 
+      <div className="h-10" />
     </main>
   )
 }
