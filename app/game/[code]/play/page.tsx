@@ -6,12 +6,11 @@ import { useGeolocation } from '@/hooks/useGeolocation'
 import { useGameTimer } from '@/hooks/useGameTimer'
 import { supabase, saveLocation } from '@/lib/supabase-client'
 import { haversineDistance, formatDistance } from '@/lib/distance'
-import { isLocationSnapshotMoment, getNextLocationUpdateSeconds, formatRelativeTime } from '@/lib/game-state'
+import { isLocationSnapshotMoment, formatRelativeTime } from '@/lib/game-state'
 import { requestWakeLock } from '@/lib/geolocation'
 import { GameTimer } from '@/components/GameTimer'
 import { MapView } from '@/components/MapView'
 import { LocationStatus } from '@/components/LocationStatus'
-import { GameStatusBanner } from '@/components/GameStatusBanner'
 import { CaptureButton } from '@/components/CaptureButton'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -25,7 +24,9 @@ export default function PlayPage() {
 
   const [playerId, setPlayerId] = useState<string | null>(null)
   const [notification, setNotification] = useState<string | null>(null)
+  const [panelOpen, setPanelOpen] = useState(true)
   const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastSnapshotRef = useRef<number>(0)
 
   useEffect(() => {
     const id = sessionStorage.getItem(`player_${code}`)
@@ -49,14 +50,9 @@ export default function PlayPage() {
     notificationTimer.current = setTimeout(() => setNotification(null), 5000)
   }, [])
 
-  // Navigate away when game ends
   useEffect(() => {
-    if (game?.status === 'finished') {
-      router.push(`/game/${code}/end`)
-    }
-    if (game?.status === 'waiting') {
-      router.push(`/game/${code}/lobby`)
-    }
+    if (game?.status === 'finished') router.push(`/game/${code}/end`)
+    if (game?.status === 'waiting') router.push(`/game/${code}/lobby`)
   }, [game?.status, code, router])
 
   // Notify hunters of new location
@@ -69,8 +65,7 @@ export default function PlayPage() {
     }
   }, [latestFugitiveLocation, isHunter, showNotification])
 
-  // Save fugitive location every 8 seconds & make visible on interval moments
-  const lastSnapshotRef = useRef<number>(0)
+  // Save fugitive location every 8 seconds
   useEffect(() => {
     if (!isFugitive || !game || !playerId || !position) return
     if (game.status !== 'headstart' && game.status !== 'active') return
@@ -79,35 +74,26 @@ export default function PlayPage() {
       const shouldBeVisible =
         game.status === 'active' &&
         isLocationSnapshotMoment(game) &&
-        Date.now() - lastSnapshotRef.current > 30_000 // debounce 30s
+        Date.now() - lastSnapshotRef.current > 30_000
 
       if (shouldBeVisible) {
         lastSnapshotRef.current = Date.now()
         showNotification('📡 Je locatie is gedeeld met de jagers!')
       }
 
-      await saveLocation(
-        game.id,
-        playerId,
-        position.latitude,
-        position.longitude,
-        position.accuracy,
-        shouldBeVisible
-      )
+      await saveLocation(game.id, playerId, position.latitude, position.longitude, position.accuracy, shouldBeVisible)
     }, 8000)
 
     return () => clearInterval(interval)
   }, [isFugitive, game, playerId, position, showNotification])
 
-  // Warn fugitive 30 seconds before location share
+  // Warn fugitive 30s before share
   useEffect(() => {
     if (!isFugitive || !game || game.status !== 'active') return
-    if (nextUpdateLeft === 30) {
-      showNotification('⚠️ Je locatie wordt over 30 seconden gedeeld!')
-    }
+    if (nextUpdateLeft === 30) showNotification('⚠️ Je locatie wordt over 30 seconden gedeeld!')
   }, [nextUpdateLeft, isFugitive, game, showNotification])
 
-  // Heartbeat: update last_seen_at
+  // Heartbeat
   useEffect(() => {
     if (!playerId) return
     const interval = setInterval(() => {
@@ -119,7 +105,6 @@ export default function PlayPage() {
   const handleCapture = async () => {
     if (!position || !game || !playerId) return { success: false, message: 'Locatie niet beschikbaar' }
 
-    // Get latest actual fugitive location (not just visible snapshot)
     const { data: fugitiveLocations } = await supabase
       .from('locations')
       .select('*')
@@ -130,13 +115,7 @@ export default function PlayPage() {
     const fugitiveLoc = fugitiveLocations?.[0]
     if (!fugitiveLoc) return { success: false, message: 'Locatie van boef niet beschikbaar' }
 
-    const distance = haversineDistance(
-      position.latitude,
-      position.longitude,
-      fugitiveLoc.latitude,
-      fugitiveLoc.longitude
-    )
-
+    const distance = haversineDistance(position.latitude, position.longitude, fugitiveLoc.latitude, fugitiveLoc.longitude)
     const fugitivePlayer = players.find((p) => p.role === 'fugitive')
 
     await supabase.from('capture_events').insert({
@@ -154,11 +133,7 @@ export default function PlayPage() {
       return { success: true, distance, message: `Gevangen! Afstand: ${formatDistance(distance)}` }
     }
 
-    return {
-      success: false,
-      distance,
-      message: `Te ver weg. Afstand: ${formatDistance(distance)}. Vangradius: ${game.capture_radius_meters}m`,
-    }
+    return { success: false, distance, message: `Te ver weg. Afstand: ${formatDistance(distance)}. Radius: ${game.capture_radius_meters}m` }
   }
 
   const handleSurrender = async () => {
@@ -173,8 +148,7 @@ export default function PlayPage() {
 
   const handleAdminPause = async () => {
     if (!game) return
-    const newStatus = game.status === 'paused' ? 'active' : 'paused'
-    await supabase.from('games').update({ status: newStatus }).eq('id', game.id)
+    await supabase.from('games').update({ status: game.status === 'paused' ? 'active' : 'paused' }).eq('id', game.id)
   }
 
   if (!game || !currentPlayer) {
@@ -182,25 +156,11 @@ export default function PlayPage() {
   }
 
   const mapMarkers = []
-
-  // Own position marker
   if (position) {
-    mapMarkers.push({
-      lat: position.latitude,
-      lng: position.longitude,
-      type: 'self' as const,
-      label: `Jij (${currentPlayer.user_name})`,
-    })
+    mapMarkers.push({ lat: position.latitude, lng: position.longitude, type: 'self' as const, label: `Jij (${currentPlayer.user_name})` })
   }
-
-  // Hunter sees latest fugitive location
   if (isHunter && latestFugitiveLocation) {
-    mapMarkers.push({
-      lat: latestFugitiveLocation.latitude,
-      lng: latestFugitiveLocation.longitude,
-      type: 'fugitive' as const,
-      label: `Boef – ${formatRelativeTime(latestFugitiveLocation.created_at)}`,
-    })
+    mapMarkers.push({ lat: latestFugitiveLocation.latitude, lng: latestFugitiveLocation.longitude, type: 'fugitive' as const, label: `Boef – ${formatRelativeTime(latestFugitiveLocation.created_at)}` })
   }
 
   const mapCenter: [number, number] | undefined = position
@@ -210,42 +170,16 @@ export default function PlayPage() {
     : undefined
 
   const timerSeconds = game.status === 'headstart' ? headstartLeft : gameLeft
-  const timerLabel = game.status === 'headstart' ? 'Voorsprong nog' : 'Tijd over'
+  const timerLabel = game.status === 'headstart' ? 'Voorsprong' : 'Tijd over'
+
+  const statusColor = game.status === 'headstart' ? 'bg-orange-500' : game.status === 'active' ? 'bg-red-500' : 'bg-yellow-500'
 
   return (
-    <main className="min-h-svh bg-gray-900 text-white flex flex-col max-w-lg mx-auto w-full">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-sm">{game.name}</span>
-          <RoleBadge role={currentPlayer.role} />
-        </div>
-        <LocationStatus accuracy={accuracy} error={geoError} loading={geoLoading} />
-      </div>
+    // Full viewport layout — map fills everything
+    <div className="fixed inset-0 bg-gray-900 flex flex-col">
 
-      {/* Notification banner */}
-      {notification && (
-        <div className="bg-orange-600 text-white text-sm font-medium px-4 py-3 text-center animate-pulse">
-          {notification}
-        </div>
-      )}
-
-      {/* Status banner */}
-      <div className="px-4 pt-3">
-        <GameStatusBanner status={game.status} />
-      </div>
-
-      {/* Timer */}
-      <div className="flex justify-center py-5">
-        <GameTimer
-          seconds={timerSeconds}
-          label={timerLabel}
-          urgent
-        />
-      </div>
-
-      {/* Map */}
-      <div className="px-4">
+      {/* ── MAP (fills all remaining space) ── */}
+      <div className="flex-1 relative">
         <MapView
           center={mapCenter}
           markers={mapMarkers}
@@ -255,175 +189,131 @@ export default function PlayPage() {
               ? { lat: game.geofence_center_lat, lng: game.geofence_center_lng!, radius: game.geofence_radius_meters }
               : null
           }
-          className="w-full h-64 rounded-2xl overflow-hidden"
+          showFullscreenButton
+          className="w-full h-full"
         />
+
+        {/* ── TOP OVERLAY ── */}
+        <div className="absolute top-0 left-0 right-0 z-[500] p-3 flex items-start justify-between pointer-events-none">
+          {/* Left: game name + role */}
+          <div className="bg-gray-900/85 backdrop-blur-sm rounded-xl px-3 py-2 flex flex-col gap-1 pointer-events-auto border border-gray-700">
+            <span className="font-bold text-white text-sm leading-none">{game.name}</span>
+            <div className="flex items-center gap-2">
+              <RoleBadge role={currentPlayer.role} />
+              <span className={`w-2 h-2 rounded-full ${statusColor}`} />
+            </div>
+          </div>
+
+          {/* Right: timer */}
+          <div className="bg-gray-900/85 backdrop-blur-sm rounded-xl px-3 py-2 pointer-events-auto border border-gray-700 text-center">
+            <p className="text-xs text-gray-400 leading-none mb-1">{timerLabel}</p>
+            <p className={`font-mono font-black text-2xl tabular-nums leading-none ${timerSeconds < 60 ? 'text-red-400' : 'text-white'}`}>
+              {String(Math.floor(timerSeconds / 60)).padStart(2, '0')}:{String(timerSeconds % 60).padStart(2, '0')}
+            </p>
+          </div>
+        </div>
+
+        {/* ── NOTIFICATION TOAST ── */}
+        {notification && (
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[500] bg-orange-600/95 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg backdrop-blur-sm max-w-xs text-center border border-orange-500 pointer-events-none">
+            {notification}
+          </div>
+        )}
+
+        {/* ── GPS STATUS (bottom-right of map, above panel toggle) ── */}
+        <div className="absolute bottom-16 right-3 z-[500] pointer-events-none">
+          <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg px-2 py-1 border border-gray-700">
+            <LocationStatus accuracy={accuracy} error={geoError} loading={geoLoading} />
+          </div>
+        </div>
+
+        {/* ── PANEL TOGGLE BUTTON ── */}
+        <button
+          onClick={() => setPanelOpen((o) => !o)}
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[500] bg-gray-800/90 hover:bg-gray-700 backdrop-blur-sm text-white rounded-full px-5 py-2 text-sm font-medium border border-gray-600 flex items-center gap-2 shadow-lg"
+        >
+          {panelOpen ? '▼ Verberg acties' : '▲ Toon acties'}
+        </button>
       </div>
 
-      {/* Role-specific info */}
-      <div className="px-4 mt-4 flex flex-col gap-3">
-        {isFugitive && (
-          <FugitivePanel
-            game={game}
-            nextUpdateLeft={nextUpdateLeft}
-            onSurrender={handleSurrender}
-          />
-        )}
+      {/* ── BOTTOM PANEL (collapsible) ── */}
+      {panelOpen && (
+        <div className="bg-gray-900 border-t border-gray-700 px-4 py-3 flex flex-col gap-3 max-h-[45vh] overflow-y-auto">
 
-        {isHunter && !isAdmin && (
-          <HunterPanel
-            game={game}
-            nextUpdateLeft={nextUpdateLeft}
-            latestFugitiveLocation={latestFugitiveLocation}
-            onCapture={handleCapture}
-          />
-        )}
-
-        {isAdmin && (
-          <AdminPanel
-            game={game}
-            onEnd={handleAdminEnd}
-            onPause={handleAdminPause}
-            onCapture={handleCapture}
-            nextUpdateLeft={nextUpdateLeft}
-            latestFugitiveLocation={latestFugitiveLocation}
-          />
-        )}
-      </div>
-
-      {/* Spacer */}
-      <div className="h-8" />
-    </main>
-  )
-}
-
-// --- Sub panels ---
-
-function FugitivePanel({
-  game,
-  nextUpdateLeft,
-  onSurrender,
-}: {
-  game: import('@/types').Game
-  nextUpdateLeft: number
-  onSurrender: () => void
-}) {
-  const [surrenderConfirm, setSurrenderConfirm] = useState(false)
-
-  return (
-    <>
-      {game.status === 'active' && (
-        <Card className="bg-orange-900/30 border-orange-700">
-          <div className="flex justify-between text-sm">
-            <span className="text-orange-300">Volgende locatie-ping over:</span>
-            <span className="font-mono font-bold text-orange-200">{nextUpdateLeft}s</span>
-          </div>
-          {nextUpdateLeft <= 30 && (
-            <p className="text-orange-400 text-xs mt-1 animate-pulse">⚠️ Beweeg je snel!</p>
-          )}
-        </Card>
-      )}
-
-      {game.status === 'headstart' && (
-        <Card className="bg-orange-900/40 border-orange-600 text-center">
-          <p className="text-orange-300 font-semibold">🏃 Pak je voorsprong!</p>
-          <p className="text-orange-200 text-sm mt-1">Jagers kunnen je nog niet zien</p>
-        </Card>
-      )}
-
-      {!surrenderConfirm ? (
-        <Button variant="secondary" onClick={() => setSurrenderConfirm(true)} className="w-full">
-          🏳️ Ik geef op
-        </Button>
-      ) : (
-        <Card className="bg-red-900/40 border-red-700">
-          <p className="text-center text-white mb-3">Weet je zeker dat je wilt opgeven?</p>
-          <div className="flex gap-3">
-            <Button variant="ghost" className="flex-1" onClick={() => setSurrenderConfirm(false)}>Annuleer</Button>
-            <Button variant="danger" className="flex-1" onClick={onSurrender}>Ja, geef op</Button>
-          </div>
-        </Card>
-      )}
-    </>
-  )
-}
-
-function HunterPanel({
-  game,
-  nextUpdateLeft,
-  latestFugitiveLocation,
-  onCapture,
-}: {
-  game: import('@/types').Game
-  nextUpdateLeft: number
-  latestFugitiveLocation: Location | null
-  onCapture: () => Promise<{ success: boolean; distance?: number; message: string }>
-}) {
-  return (
-    <>
-      {latestFugitiveLocation && (
-        <Card className="bg-blue-900/30 border-blue-700">
-          <div className="flex justify-between text-sm mb-1">
-            <span className="text-blue-300">Laatste bekende locatie boef:</span>
-            <span className="text-blue-200 text-xs">{formatRelativeTime(latestFugitiveLocation.created_at)}</span>
-          </div>
-          {game.status === 'active' && (
-            <div className="flex justify-between text-sm">
-              <span className="text-blue-400">Volgende update over:</span>
-              <span className="font-mono font-bold text-blue-200">{nextUpdateLeft}s</span>
+          {/* Fugitive info */}
+          {isFugitive && game.status === 'active' && (
+            <div className="flex justify-between items-center bg-orange-900/30 border border-orange-700 rounded-xl px-4 py-2.5 text-sm">
+              <span className="text-orange-300">Volgende ping over</span>
+              <span className={`font-mono font-bold ${nextUpdateLeft <= 30 ? 'text-red-400 animate-pulse' : 'text-orange-200'}`}>{nextUpdateLeft}s</span>
             </div>
           )}
-        </Card>
-      )}
 
-      {!latestFugitiveLocation && game.status === 'active' && (
-        <Card className="bg-blue-900/20 border-blue-800 text-center">
-          <p className="text-blue-400 text-sm">
-            Nog geen locatie ontvangen — wacht op eerste ping ({nextUpdateLeft}s)
-          </p>
-        </Card>
-      )}
+          {isFugitive && game.status === 'headstart' && (
+            <div className="bg-orange-900/40 border border-orange-600 rounded-xl px-4 py-2.5 text-center">
+              <p className="text-orange-300 font-semibold text-sm">🏃 Pak je voorsprong — jagers kunnen je nog niet zien</p>
+            </div>
+          )}
 
-      {game.status === 'active' && (
-        <CaptureButton onCapture={onCapture} />
+          {/* Hunter info */}
+          {isHunter && latestFugitiveLocation && (
+            <div className="flex justify-between items-center bg-blue-900/30 border border-blue-700 rounded-xl px-4 py-2.5 text-sm">
+              <span className="text-blue-300">Boef gezien</span>
+              <span className="text-blue-200">{formatRelativeTime(latestFugitiveLocation.created_at)}</span>
+              {game.status === 'active' && (
+                <span className="text-blue-400 text-xs">volgende: {nextUpdateLeft}s</span>
+              )}
+            </div>
+          )}
+
+          {isHunter && !latestFugitiveLocation && game.status === 'active' && (
+            <div className="bg-blue-900/20 border border-blue-800 rounded-xl px-4 py-2.5 text-center text-sm text-blue-400">
+              Wacht op eerste locatie-ping ({nextUpdateLeft}s)
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex flex-col gap-2">
+            {game.status === 'active' && isHunter && (
+              <CaptureButton onCapture={handleCapture} />
+            )}
+
+            {isFugitive && (
+              <SurrenderButton onSurrender={handleSurrender} />
+            )}
+
+            {isAdmin && (
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={handleAdminPause} className="flex-1">
+                  {game.status === 'paused' ? '▶️ Hervatten' : '⏸️ Pauzeren'}
+                </Button>
+                <Button variant="danger" size="sm" onClick={handleAdminEnd} className="flex-1">
+                  🛑 Beëindigen
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
-    </>
+    </div>
   )
 }
 
-function AdminPanel({
-  game,
-  onEnd,
-  onPause,
-  onCapture,
-  nextUpdateLeft,
-  latestFugitiveLocation,
-}: {
-  game: import('@/types').Game
-  onEnd: () => void
-  onPause: () => void
-  onCapture: () => Promise<{ success: boolean; distance?: number; message: string }>
-  nextUpdateLeft: number
-  latestFugitiveLocation: Location | null
-}) {
+function SurrenderButton({ onSurrender }: { onSurrender: () => void }) {
+  const [confirm, setConfirm] = useState(false)
+  if (!confirm) {
+    return (
+      <Button variant="secondary" onClick={() => setConfirm(true)} className="w-full">
+        🏳️ Ik geef op
+      </Button>
+    )
+  }
   return (
-    <>
-      <HunterPanel
-        game={game}
-        nextUpdateLeft={nextUpdateLeft}
-        latestFugitiveLocation={latestFugitiveLocation}
-        onCapture={onCapture}
-      />
-      <Card className="bg-yellow-900/20 border-yellow-700">
-        <p className="text-xs text-yellow-400 font-semibold mb-2 uppercase tracking-widest">Admin-controls</p>
-        <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={onPause} className="flex-1">
-            {game.status === 'paused' ? '▶️ Hervatten' : '⏸️ Pauzeren'}
-          </Button>
-          <Button variant="danger" size="sm" onClick={onEnd} className="flex-1">
-            🛑 Spel beëindigen
-          </Button>
-        </div>
-      </Card>
-    </>
+    <Card className="bg-red-900/40 border-red-700">
+      <p className="text-center text-white text-sm mb-3">Weet je zeker dat je wilt opgeven?</p>
+      <div className="flex gap-3">
+        <Button variant="ghost" className="flex-1" onClick={() => setConfirm(false)}>Annuleer</Button>
+        <Button variant="danger" className="flex-1" onClick={onSurrender}>Ja, geef op</Button>
+      </div>
+    </Card>
   )
 }
