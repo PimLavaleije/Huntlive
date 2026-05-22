@@ -5,8 +5,9 @@ import type { Location } from '@/types'
 interface MapMarker {
   lat: number
   lng: number
-  type: 'self' | 'fugitive' | 'hunter' | 'history'
+  type: 'admin' | 'fugitive' | 'hunter' | 'history'
   label?: string
+  isSelf?: boolean
 }
 
 interface MapViewProps {
@@ -19,10 +20,10 @@ interface MapViewProps {
 }
 
 const markerColors: Record<MapMarker['type'], string> = {
-  self: '#3b82f6',
-  fugitive: '#eab308',
-  hunter: '#ef4444',
-  history: '#eab308',
+  admin: '#eab308',    // yellow
+  fugitive: '#3b82f6', // blue
+  hunter: '#ef4444',   // red
+  history: '#3b82f6',  // blue (follows fugitive)
 }
 
 export function MapView({
@@ -62,7 +63,6 @@ export function MapView({
       const initialCenter: [number, number] = center ?? [52.3676, 4.9041]
       const map = L.map(mapRef.current!, { zoomControl: true }).setView(initialCenter, zoom)
 
-      // Dark tiles with good road contrast — no CSS filter needed
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd',
@@ -98,11 +98,9 @@ export function MapView({
 
       markers.forEach((marker) => {
         const color = markerColors[marker.type]
-        const isSelf = marker.type === 'self'
-        const isFugitive = marker.type === 'fugitive'
-        const size = isFugitive ? 20 : 16
+        const size = marker.isSelf ? 18 : marker.type === 'fugitive' ? 20 : 16
 
-        const html = isSelf
+        const html = marker.isSelf
           ? `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 0 3px ${color}44,0 2px 8px rgba(0,0,0,0.4)"></div>`
           : `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 8px rgba(0,0,0,0.5)"></div>`
 
@@ -122,7 +120,7 @@ export function MapView({
       if (polylineRef.current) polylineRef.current.remove()
       if (fugitiveHistory.length < 2) return
       const latlngs = fugitiveHistory.map((loc) => [loc.latitude, loc.longitude] as [number, number])
-      polylineRef.current = L.polyline(latlngs, { color: '#eab308', weight: 3, opacity: 0.7, dashArray: '6 4' })
+      polylineRef.current = L.polyline(latlngs, { color: '#3b82f6', weight: 3, opacity: 0.7, dashArray: '6 4' })
       polylineRef.current.addTo(mapInstanceRef.current)
     })
   }, [fugitiveHistory])
@@ -145,7 +143,7 @@ export function MapView({
   }, [geofence])
 
   const handleCenterOnSelf = () => {
-    const self = markersPropsRef.current.find((m) => m.type === 'self')
+    const self = markersPropsRef.current.find((m) => m.isSelf)
     if (self && mapInstanceRef.current) {
       mapInstanceRef.current.setView([self.lat, self.lng], 16)
     }
@@ -154,13 +152,12 @@ export function MapView({
   return (
     <>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-      {/* Hide Leaflet zoom control on mobile — pinch-to-zoom still works */}
       <style>{`.leaflet-control-zoom { display: none; } @media (min-width: 768px) { .leaflet-control-zoom { display: block; } }`}</style>
       <div className={`relative ${className ?? 'w-full h-64 rounded-2xl overflow-hidden'}`}>
         <div ref={mapRef} className="w-full h-full" />
 
         {/* Center-on-me button */}
-        {markers.some((m) => m.type === 'self') && (
+        {markers.some((m) => m.isSelf) && (
           <button
             onClick={handleCenterOnSelf}
             className="absolute bottom-10 right-2 z-[1000] bg-gray-900/90 hover:bg-gray-800 text-white rounded-lg p-2 border border-gray-600 transition-colors shadow-lg"
@@ -176,14 +173,22 @@ export function MapView({
         {/* Legend */}
         {markers.length > 0 && (
           <div className="absolute bottom-2 left-2 z-[1000] bg-gray-900/80 backdrop-blur-sm rounded-lg px-2 py-1.5 text-xs flex flex-col gap-1 border border-gray-700">
-            {markers.some(m => m.type === 'self') && (
-              <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500 border border-white inline-block" />Jij</div>
+            {markers.some(m => m.isSelf) && (
+              <div className="flex items-center gap-1.5">
+                <span className={`w-3 h-3 rounded-full border border-white inline-block ${
+                  markers.find(m => m.isSelf)?.type === 'admin' ? 'bg-yellow-400' :
+                  markers.find(m => m.isSelf)?.type === 'fugitive' ? 'bg-blue-500' : 'bg-red-500'
+                }`} />Jij
+              </div>
             )}
-            {markers.some(m => m.type === 'fugitive') && (
-              <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-yellow-400 border border-white inline-block" />Boef</div>
+            {markers.some(m => m.type === 'fugitive' && !m.isSelf) && (
+              <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500 border border-white inline-block" />Boef</div>
             )}
-            {markers.some(m => m.type === 'hunter') && (
+            {markers.some(m => m.type === 'hunter' && !m.isSelf) && (
               <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-500 border border-white inline-block" />Jager</div>
+            )}
+            {markers.some(m => m.type === 'admin' && !m.isSelf) && (
+              <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-yellow-400 border border-white inline-block" />Spelleider</div>
             )}
           </div>
         )}

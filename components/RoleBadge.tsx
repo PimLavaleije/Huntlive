@@ -2,8 +2,8 @@ import { cn } from '@/lib/utils'
 import type { PlayerRole } from '@/types'
 
 const roleConfig: Record<PlayerRole, { label: string; className: string }> = {
-  fugitive: { label: '🏃 Voortvluchtige', className: 'bg-orange-500/20 text-orange-300 border-orange-500/40' },
-  hunter: { label: '🔍 Jager', className: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
+  fugitive: { label: '🏃 Voortvluchtige', className: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
+  hunter: { label: '🔍 Jager', className: 'bg-red-500/20 text-red-300 border-red-500/40' },
   admin: { label: '👑 Spelleider', className: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40' },
 }
 

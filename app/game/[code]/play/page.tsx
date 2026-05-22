@@ -305,14 +305,15 @@ export default function PlayPage() {
 
   const mapMarkers = []
   if (position) {
-    mapMarkers.push({ lat: position.latitude, lng: position.longitude, type: 'self' as const, label: `Jij (${currentPlayer.user_name})` })
+    const selfType = isAdmin ? 'admin' as const : isFugitive ? 'fugitive' as const : 'hunter' as const
+    mapMarkers.push({ lat: position.latitude, lng: position.longitude, type: selfType, label: `Jij (${currentPlayer.user_name})`, isSelf: true })
   }
   if (isAdmin) {
     allPlayerLocations.forEach((loc, pid) => {
       if (pid === playerId) return
       const player = players.find((p) => p.id === pid)
       if (!player) return
-      const type = player.role === 'fugitive' ? 'fugitive' as const : 'hunter' as const
+      const type = player.role === 'fugitive' ? 'fugitive' as const : player.role === 'admin' ? 'admin' as const : 'hunter' as const
       mapMarkers.push({ lat: loc.lat, lng: loc.lng, type, label: player.user_name })
     })
   } else if (isHunter && latestFugitiveLocation) {
@@ -320,7 +321,8 @@ export default function PlayPage() {
   } else if (isFugitive) {
     hunterLocations.forEach((loc, pid) => {
       const player = players.find((p) => p.id === pid)
-      mapMarkers.push({ lat: loc.lat, lng: loc.lng, type: 'hunter' as const, label: player?.user_name ?? 'Jager' })
+      const type = player?.role === 'admin' ? 'admin' as const : 'hunter' as const
+      mapMarkers.push({ lat: loc.lat, lng: loc.lng, type, label: player?.user_name ?? 'Jager' })
     })
   }
 
@@ -329,7 +331,7 @@ export default function PlayPage() {
     teamLocations.forEach((loc, pid) => {
       const player = players.find((p) => p.id === pid)
       if (!player) return
-      const type = player.role === 'fugitive' ? 'fugitive' as const : 'hunter' as const
+      const type = player.role === 'fugitive' ? 'fugitive' as const : player.role === 'admin' ? 'admin' as const : 'hunter' as const
       mapMarkers.push({ lat: loc.lat, lng: loc.lng, type, label: `${player.user_name} (team)` })
     })
   }
@@ -431,31 +433,31 @@ export default function PlayPage() {
 
           {/* Fugitive info */}
           {isFugitive && game.status === 'active' && (
-            <div className="flex justify-between items-center bg-orange-900/30 border border-orange-700 rounded-xl px-4 py-2.5 text-sm">
-              <span className="text-orange-300">Volgende ping over</span>
-              <span className={`font-mono font-bold ${nextUpdateLeft <= 30 ? 'text-red-400 animate-pulse' : 'text-orange-200'}`}>{nextUpdateLeft}s</span>
+            <div className="flex justify-between items-center bg-blue-900/30 border border-blue-700 rounded-xl px-4 py-2.5 text-sm">
+              <span className="text-blue-300">Volgende ping over</span>
+              <span className={`font-mono font-bold ${nextUpdateLeft <= 30 ? 'text-red-400 animate-pulse' : 'text-blue-200'}`}>{nextUpdateLeft}s</span>
             </div>
           )}
 
           {isFugitive && game.status === 'headstart' && (
-            <div className="bg-orange-900/40 border border-orange-600 rounded-xl px-4 py-2.5 text-center">
-              <p className="text-orange-300 font-semibold text-sm">🏃 Pak je voorsprong — jagers kunnen je nog niet zien</p>
+            <div className="bg-blue-900/40 border border-blue-600 rounded-xl px-4 py-2.5 text-center">
+              <p className="text-blue-300 font-semibold text-sm">🏃 Pak je voorsprong — jagers kunnen je nog niet zien</p>
             </div>
           )}
 
           {/* Hunter info */}
           {isHunter && latestFugitiveLocation && (
-            <div className="flex justify-between items-center bg-blue-900/30 border border-blue-700 rounded-xl px-4 py-2.5 text-sm">
-              <span className="text-blue-300">Boef gezien</span>
-              <span className="text-blue-200">{formatRelativeTime(latestFugitiveLocation.created_at)}</span>
+            <div className="flex justify-between items-center bg-red-900/30 border border-red-700 rounded-xl px-4 py-2.5 text-sm">
+              <span className="text-red-300">Boef gezien</span>
+              <span className="text-red-200">{formatRelativeTime(latestFugitiveLocation.created_at)}</span>
               {game.status === 'active' && (
-                <span className="text-blue-400 text-xs">volgende: {nextUpdateLeft}s</span>
+                <span className="text-red-400 text-xs">volgende: {nextUpdateLeft}s</span>
               )}
             </div>
           )}
 
           {isHunter && !latestFugitiveLocation && game.status === 'active' && (
-            <div className="bg-blue-900/20 border border-blue-800 rounded-xl px-4 py-2.5 text-center text-sm text-blue-400">
+            <div className="bg-red-900/20 border border-red-800 rounded-xl px-4 py-2.5 text-center text-sm text-red-400">
               Wacht op eerste locatie-ping ({nextUpdateLeft}s)
             </div>
           )}
