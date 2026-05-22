@@ -16,12 +16,10 @@ export function PlayerList({ players, currentPlayerId, showRoles = true, onRoleC
       {players.map((player) => (
         <div
           key={player.id}
-          className={cn(
-            'flex items-center justify-between px-4 py-3 rounded-xl border transition-colors',
-            player.id === currentPlayerId
-              ? 'bg-blue-900/30 border-blue-600'
-              : 'bg-gray-700/50 border-gray-600'
-          )}
+          className="flex items-center justify-between px-4 py-3 rounded-xl border transition-colors"
+          style={player.id === currentPlayerId
+            ? { background: 'rgba(37,99,235,0.1)', border: '1px solid #1e3a8a' }
+            : { background: '#0d1018', border: '1px solid #1a2540' }}
         >
           <div className="flex items-center gap-2">
             <span className="font-medium text-white">
@@ -48,7 +46,8 @@ function RoleSelector({ role, onChange }: { role: Player['role']; onChange: (r: 
     <select
       value={role}
       onChange={(e) => onChange(e.target.value as Player['role'])}
-      className="bg-gray-600 border border-gray-500 text-white text-xs rounded-lg px-2 py-1"
+      className="text-white text-xs rounded-lg px-2 py-1"
+      style={{ background: '#0b1120', border: '1px solid #1e2d45' }}
     >
       <option value="hunter">🔍 Jager</option>
       <option value="fugitive">🏃 Voortvluchtige</option>

@@ -537,15 +537,15 @@ export default function PlayPage() {
                       <div key={p.id} className="flex items-center justify-between rounded-xl px-3 py-2" style={{ background: '#0d1018', border: '1px solid #1a2540' }}>
                         <span className="text-white text-sm font-medium truncate max-w-[100px]">{p.user_name}</span>
                         <div className="flex gap-1">
-                          {([['fugitive', '🟡 Boef'], ['hunter', '🔴 Jager'], ['admin', '🔵 Leider']] as [PlayerRole, string][]).map(([role, label]) => (
+                          {([['fugitive', '🔵 Boef'], ['hunter', '🔴 Jager'], ['admin', '🟡 Leider']] as [PlayerRole, string][]).map(([role, label]) => (
                             <button
                               key={role}
                               onClick={() => handleRoleChange(p.id, role)}
                               className={`text-xs px-2 py-1 rounded-lg border transition-colors ${
                                 p.role === role
-                                  ? role === 'fugitive' ? 'bg-yellow-500 border-yellow-400 text-black font-bold'
+                                  ? role === 'fugitive' ? 'bg-blue-600 border-blue-500 text-white font-bold'
                                     : role === 'hunter' ? 'bg-red-600 border-red-500 text-white font-bold'
-                                    : 'bg-blue-600 border-blue-500 text-white font-bold'
+                                    : 'bg-yellow-500 border-yellow-400 text-black font-bold'
                                   : 'text-gray-500'
                               }`}
                             >
