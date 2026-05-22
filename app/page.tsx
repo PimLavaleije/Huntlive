@@ -111,15 +111,6 @@ export default function HomePage() {
         {error && <p className="text-red-400 mt-1.5 ml-1" style={{ fontSize: '0.75rem' }}>{error}</p>}
       </div>
 
-      {/* ── FOOTER ── */}
-      <div className="flex justify-around px-4 mt-auto py-8">
-        <button className="flex items-center gap-1.5 tracking-widest uppercase transition-colors hover:text-gray-300" style={{ fontSize: '0.65rem', color: '#4b5563' }}>
-          <span>⚙</span> Instellingen
-        </button>
-        <button className="flex items-center gap-1.5 tracking-widest uppercase transition-colors hover:text-gray-300" style={{ fontSize: '0.65rem', color: '#4b5563' }}>
-          <span>ⓘ</span> Hoe het werkt
-        </button>
-      </div>
     </main>
   )
 }
