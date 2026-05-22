@@ -5,10 +5,13 @@ import { cn } from '@/lib/utils'
 
 interface CaptureButtonProps {
   onCapture: () => Promise<{ success: boolean; distance?: number; message: string }>
+  withinRadius?: boolean
+  distanceMeters?: number | null
+  captureRadius?: number
   className?: string
 }
 
-export function CaptureButton({ onCapture, className }: CaptureButtonProps) {
+export function CaptureButton({ onCapture, withinRadius, distanceMeters, captureRadius, className }: CaptureButtonProps) {
   const [state, setState] = useState<'idle' | 'confirming' | 'loading' | 'result'>('idle')
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
 
@@ -21,7 +24,6 @@ export function CaptureButton({ onCapture, className }: CaptureButtonProps) {
     const res = await onCapture()
     setResult(res)
     setState('result')
-    // Reset after 5 seconds if failed
     if (!res.success) {
       setTimeout(() => { setState('idle'); setResult(null) }, 5000)
     }
@@ -44,6 +46,26 @@ export function CaptureButton({ onCapture, className }: CaptureButtonProps) {
           <Button variant="ghost" className="flex-1" onClick={() => setState('idle')}>Annuleer</Button>
           <Button variant="danger" className="flex-1" onClick={handleConfirm}>Ja, gevangen!</Button>
         </div>
+      </div>
+    )
+  }
+
+  // Out of range — show disabled button with distance info
+  if (withinRadius === false) {
+    const dist = distanceMeters != null ? Math.round(distanceMeters) : null
+    return (
+      <div className={cn('flex flex-col gap-1', className)}>
+        <button
+          disabled
+          className="w-full bg-gray-700 text-gray-400 font-bold py-4 px-6 rounded-2xl text-lg border border-gray-600 cursor-not-allowed opacity-60"
+        >
+          🎯 Boef gevangen!
+        </button>
+        <p className="text-center text-xs text-gray-400">
+          {dist != null
+            ? `${dist}m van boef — kom binnen ${captureRadius ?? '?'}m`
+            : `Kom binnen ${captureRadius ?? '?'}m van de boef`}
+        </p>
       </div>
     )
   }

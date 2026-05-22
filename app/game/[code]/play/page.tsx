@@ -186,7 +186,7 @@ export default function PlayPage() {
     if (!game || !playerId || isAdmin) return
 
     const teammateIds = playersRef.current
-      .filter((p) => p.id !== playerId && (isFugitive ? p.role === 'fugitive' : p.role === 'hunter' || p.role === 'admin'))
+      .filter((p) => p.id !== playerId && (isFugitive ? p.role === 'fugitive' : p.role === 'hunter'))
       .map((p) => p.id)
 
     if (teammateIds.length > 0) {
@@ -218,7 +218,7 @@ export default function PlayPage() {
         if (!teammate) return
         const isTeammate = isFugitive
           ? teammate.role === 'fugitive'
-          : teammate.role === 'hunter' || teammate.role === 'admin'
+          : teammate.role === 'hunter'
         if (!isTeammate) return
         setTeamLocations((prev) => {
           const next = new Map(prev)
@@ -302,6 +302,12 @@ export default function PlayPage() {
   if (!game || !currentPlayer) {
     return <div className="min-h-svh bg-gray-900 flex items-center justify-center text-gray-400">Laden...</div>
   }
+
+  const distanceToFugitive =
+    position && latestFugitiveLocation && !isFugitive
+      ? haversineDistance(position.latitude, position.longitude, latestFugitiveLocation.latitude, latestFugitiveLocation.longitude)
+      : null
+  const withinCaptureRadius = distanceToFugitive !== null && distanceToFugitive <= game.capture_radius_meters
 
   const mapMarkers = []
   if (position) {
@@ -465,7 +471,12 @@ export default function PlayPage() {
           {/* Action buttons */}
           <div className="flex flex-col gap-2">
             {game.status === 'active' && isHunter && (
-              <CaptureButton onCapture={handleCapture} />
+              <CaptureButton
+                onCapture={handleCapture}
+                withinRadius={withinCaptureRadius}
+                distanceMeters={distanceToFugitive}
+                captureRadius={game.capture_radius_meters}
+              />
             )}
 
             {isFugitive && (
