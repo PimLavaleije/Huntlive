@@ -42,6 +42,9 @@ export function MapView({
   const polylineRef = useRef<any>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const geofenceRef = useRef<any>(null)
+  const hasSetInitialCenterRef = useRef(false)
+  const markersPropsRef = useRef(markers)
+  markersPropsRef.current = markers
 
   // Lazy-load Leaflet
   useEffect(() => {
@@ -59,15 +62,12 @@ export function MapView({
       const initialCenter: [number, number] = center ?? [52.3676, 4.9041]
       const map = L.map(mapRef.current!, { zoomControl: true }).setView(initialCenter, zoom)
 
+      // Dark tiles with good road contrast — no CSS filter needed
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd',
         maxZoom: 19,
       }).addTo(map)
-
-      // Boost contrast so roads and paths stand out sharply
-      const tilePane = map.getPanes().tilePane as HTMLElement
-      tilePane.style.filter = 'contrast(1.6) brightness(1.2)'
 
       mapInstanceRef.current = map
     })
@@ -81,9 +81,11 @@ export function MapView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Update center
+  // Center on self once when GPS first becomes available — then leave map free
   useEffect(() => {
     if (!mapInstanceRef.current || !center) return
+    if (hasSetInitialCenterRef.current) return
+    hasSetInitialCenterRef.current = true
     mapInstanceRef.current.setView(center, zoom)
   }, [center, zoom])
 
@@ -142,11 +144,34 @@ export function MapView({
     })
   }, [geofence])
 
+  const handleCenterOnSelf = () => {
+    const self = markersPropsRef.current.find((m) => m.type === 'self')
+    if (self && mapInstanceRef.current) {
+      mapInstanceRef.current.setView([self.lat, self.lng], 16)
+    }
+  }
+
   return (
     <>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+      {/* Hide Leaflet zoom control on mobile — pinch-to-zoom still works */}
+      <style>{`.leaflet-control-zoom { display: none; } @media (min-width: 768px) { .leaflet-control-zoom { display: block; } }`}</style>
       <div className={`relative ${className ?? 'w-full h-64 rounded-2xl overflow-hidden'}`}>
         <div ref={mapRef} className="w-full h-full" />
+
+        {/* Center-on-me button */}
+        {markers.some((m) => m.type === 'self') && (
+          <button
+            onClick={handleCenterOnSelf}
+            className="absolute bottom-10 right-2 z-[1000] bg-gray-900/90 hover:bg-gray-800 text-white rounded-lg p-2 border border-gray-600 transition-colors shadow-lg"
+            title="Centreer op mijn locatie"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+            </svg>
+          </button>
+        )}
 
         {/* Legend */}
         {markers.length > 0 && (
