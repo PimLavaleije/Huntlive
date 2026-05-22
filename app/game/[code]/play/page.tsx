@@ -15,7 +15,7 @@ import { CaptureButton } from '@/components/CaptureButton'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { RoleBadge } from '@/components/RoleBadge'
-import type { Location, Player } from '@/types'
+import type { Location, Player, PlayerRole } from '@/types'
 
 export default function PlayPage() {
   const router = useRouter()
@@ -28,6 +28,7 @@ export default function PlayPage() {
   const [allPlayerLocations, setAllPlayerLocations] = useState<Map<string, { lat: number; lng: number }>>(new Map())
   const [hunterLocations, setHunterLocations] = useState<Map<string, { lat: number; lng: number }>>(new Map())
   const [phaseModal, setPhaseModal] = useState<{ title: string; body: string } | null>(null)
+  const [showTeamEditor, setShowTeamEditor] = useState(false)
   const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSnapshotRef = useRef<number>(0)
   const prevGameStatusRef = useRef<string | null>(null)
@@ -243,6 +244,10 @@ export default function PlayPage() {
     await supabase.from('games').update({ status: game.status === 'paused' ? 'active' : 'paused' }).eq('id', game.id)
   }
 
+  const handleRoleChange = async (pid: string, newRole: PlayerRole) => {
+    await supabase.from('players').update({ role: newRole }).eq('id', pid)
+  }
+
   if (!game || !currentPlayer) {
     return <div className="min-h-svh bg-gray-900 flex items-center justify-center text-gray-400">Laden...</div>
   }
@@ -405,13 +410,48 @@ export default function PlayPage() {
             )}
 
             {isAdmin && (
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={handleAdminPause} className="flex-1">
-                  {game.status === 'paused' ? '▶️ Hervatten' : '⏸️ Pauzeren'}
-                </Button>
-                <Button variant="danger" size="sm" onClick={handleAdminEnd} className="flex-1">
-                  🛑 Beëindigen
-                </Button>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" onClick={handleAdminPause} className="flex-1">
+                    {game.status === 'paused' ? '▶️ Hervatten' : '⏸️ Pauzeren'}
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={handleAdminEnd} className="flex-1">
+                    🛑 Beëindigen
+                  </Button>
+                </div>
+                <button
+                  onClick={() => setShowTeamEditor((o) => !o)}
+                  className="w-full text-sm text-gray-300 bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-xl px-4 py-2 flex items-center justify-between"
+                >
+                  <span>👥 Teams wijzigen</span>
+                  <span>{showTeamEditor ? '▲' : '▼'}</span>
+                </button>
+                {showTeamEditor && (
+                  <div className="flex flex-col gap-2">
+                    {players.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between bg-gray-800 rounded-xl px-3 py-2">
+                        <span className="text-white text-sm font-medium truncate max-w-[100px]">{p.user_name}</span>
+                        <div className="flex gap-1">
+                          {([['fugitive', '🟡 Boef'], ['hunter', '🔴 Jager'], ['admin', '🔵 Leider']] as [PlayerRole, string][]).map(([role, label]) => (
+                            <button
+                              key={role}
+                              onClick={() => handleRoleChange(p.id, role)}
+                              className={`text-xs px-2 py-1 rounded-lg border transition-colors ${
+                                p.role === role
+                                  ? role === 'fugitive' ? 'bg-yellow-500 border-yellow-400 text-black font-bold'
+                                    : role === 'hunter' ? 'bg-red-600 border-red-500 text-white font-bold'
+                                    : 'bg-blue-600 border-blue-500 text-white font-bold'
+                                  : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
