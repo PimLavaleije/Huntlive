@@ -4,9 +4,10 @@ import type { Location } from '@/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 interface MapMarker {
+  id: string
   lat: number
   lng: number
-  type: 'admin' | 'fugitive' | 'hunter' | 'history'
+  type: 'admin' | 'fugitive' | 'hunter'
   label?: string
   isSelf?: boolean
 }
@@ -24,7 +25,6 @@ const markerColors: Record<MapMarker['type'], string> = {
   admin: '#eab308',    // yellow
   fugitive: '#3b82f6', // blue
   hunter: '#ef4444',   // red
-  history: '#3b82f6',  // blue (follows fugitive)
 }
 
 export function MapView({
@@ -40,9 +40,11 @@ export function MapView({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapInstanceRef = useRef<any>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const markersRef = useRef<any[]>([])
+  const markersMapRef = useRef<Map<string, { m: any; type: MapMarker['type'] }>>(new Map())
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const polylineRef = useRef<any>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const historyDotsRef = useRef<any[]>([])
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const geofenceRef = useRef<any>(null)
   const hasSetInitialCenterRef = useRef(false)
@@ -91,41 +93,78 @@ export function MapView({
     mapInstanceRef.current.setView(center, zoom)
   }, [center, zoom])
 
-  // Update markers
+  // Update markers — diff-based to avoid flicker
   useEffect(() => {
     if (!mapInstanceRef.current) return
     import('leaflet').then((L) => {
-      markersRef.current.forEach((m) => m.remove())
-      markersRef.current = []
+      const incoming = new Map(markers.map((m) => [m.id, m]))
 
-      markers.forEach((marker) => {
-        const color = markerColors[marker.type]
-        const size = marker.isSelf ? 18 : marker.type === 'fugitive' ? 20 : 16
+      // Remove stale markers
+      for (const [id, tracked] of markersMapRef.current) {
+        if (!incoming.has(id)) {
+          tracked.m.remove()
+          markersMapRef.current.delete(id)
+        }
+      }
 
-        const html = marker.isSelf
-          ? `<div style="position:relative;width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><div class="marker-pulse" style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color};"></div><div style="position:relative;width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 0 3px ${color}44,0 2px 8px rgba(0,0,0,0.4)"></div></div>`
-          : `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 8px rgba(0,0,0,0.5)"></div>`
+      // Update existing or add new
+      for (const [id, marker] of incoming) {
+        const tracked = markersMapRef.current.get(id)
+        if (tracked && tracked.type === marker.type) {
+          // Same marker — just move it
+          tracked.m.setLatLng([marker.lat, marker.lng])
+          if (marker.label) { tracked.m.unbindPopup(); tracked.m.bindPopup(marker.label) }
+        } else {
+          // New marker or type changed — (re)create
+          if (tracked) { tracked.m.remove(); markersMapRef.current.delete(id) }
 
-        const iconSize: [number, number] = marker.isSelf ? [40, 40] : [size, size]
-        const iconAnchor: [number, number] = marker.isSelf ? [20, 20] : [size / 2, size / 2]
-        const icon = L.divIcon({ html, className: '', iconSize, iconAnchor })
-        const m = L.marker([marker.lat, marker.lng], { icon })
-        if (marker.label) m.bindPopup(marker.label)
-        m.addTo(mapInstanceRef.current)
-        markersRef.current.push(m)
-      })
+          const color = markerColors[marker.type]
+          const size = marker.isSelf ? 18 : marker.type === 'fugitive' ? 20 : 16
+          const html = marker.isSelf
+            ? `<div style="position:relative;width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><div class="marker-pulse" style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color};"></div><div style="position:relative;width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 0 3px ${color}44,0 2px 8px rgba(0,0,0,0.4)"></div></div>`
+            : `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 8px rgba(0,0,0,0.5)"></div>`
+          const iconSize: [number, number] = marker.isSelf ? [40, 40] : [size, size]
+          const iconAnchor: [number, number] = marker.isSelf ? [20, 20] : [size / 2, size / 2]
+          const icon = L.divIcon({ html, className: '', iconSize, iconAnchor })
+          const m = L.marker([marker.lat, marker.lng], { icon })
+          if (marker.label) m.bindPopup(marker.label)
+          m.addTo(mapInstanceRef.current)
+          markersMapRef.current.set(id, { m, type: marker.type })
+        }
+      }
     })
   }, [markers])
 
-  // Fugitive path
+  // Fugitive path + ping dots
   useEffect(() => {
     if (!mapInstanceRef.current) return
     import('leaflet').then((L) => {
-      if (polylineRef.current) polylineRef.current.remove()
-      if (fugitiveHistory.length < 2) return
-      const latlngs = fugitiveHistory.map((loc) => [loc.latitude, loc.longitude] as [number, number])
-      polylineRef.current = L.polyline(latlngs, { color: '#3b82f6', weight: 3, opacity: 0.7, dashArray: '6 4' })
-      polylineRef.current.addTo(mapInstanceRef.current)
+      if (polylineRef.current) { polylineRef.current.remove(); polylineRef.current = null }
+      historyDotsRef.current.forEach((m) => m.remove())
+      historyDotsRef.current = []
+
+      if (fugitiveHistory.length === 0) return
+
+      if (fugitiveHistory.length >= 2) {
+        const latlngs = fugitiveHistory.map((loc) => [loc.latitude, loc.longitude] as [number, number])
+        polylineRef.current = L.polyline(latlngs, { color: '#3b82f6', weight: 2, opacity: 0.35 })
+        polylineRef.current.addTo(mapInstanceRef.current)
+      }
+
+      fugitiveHistory.forEach((loc, i) => {
+        const time = new Date(loc.created_at).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+        const dot = L.circleMarker([loc.latitude, loc.longitude], {
+          radius: 5,
+          color: '#ffffff',
+          weight: 1.5,
+          fillColor: '#3b82f6',
+          fillOpacity: 0.75,
+          opacity: 0.9,
+        })
+        dot.bindPopup(`Ping ${i + 1} — ${time}`)
+        dot.addTo(mapInstanceRef.current)
+        historyDotsRef.current.push(dot)
+      })
     })
   }, [fugitiveHistory])
 

@@ -27,8 +27,21 @@ export function useGeolocation(enabled = true): UseGeolocationReturn {
 
   useEffect(() => {
     if (!enabled) return
-    const stop = watchPosition(handleUpdate, handleError)
-    return stop
+    let stop = watchPosition(handleUpdate, handleError)
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        // Restart GPS watcher immediately after screen unlock
+        stop()
+        stop = watchPosition(handleUpdate, handleError)
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      stop()
+    }
   }, [enabled, handleUpdate, handleError])
 
   const accuracy: 'good' | 'ok' | 'poor' | null = position

@@ -65,14 +65,38 @@ function translateGeoError(err: GeolocationPositionError): Error {
   }
 }
 
-// Request Wake Lock to keep screen on during game
-export async function requestWakeLock(): Promise<WakeLockSentinel | null> {
-  if ('wakeLock' in navigator) {
+// Request Wake Lock to keep screen on during game.
+// Auto-reacquires if released (e.g. incoming call, battery saver).
+// Returns a cleanup function — call it when the game page unmounts.
+export async function requestWakeLock(): Promise<() => void> {
+  if (!('wakeLock' in navigator)) return () => {}
+
+  type WakeLockNav = Navigator & { wakeLock: { request: (type: string) => Promise<WakeLockSentinel> } }
+  const nav = navigator as WakeLockNav
+  let sentinel: WakeLockSentinel | null = null
+  let active = true
+
+  const acquire = async () => {
+    if (!active) return
     try {
-      return await (navigator as Navigator & { wakeLock: { request: (type: string) => Promise<WakeLockSentinel> } }).wakeLock.request('screen')
-    } catch {
-      return null
-    }
+      sentinel = await nav.wakeLock.request('screen')
+      sentinel.addEventListener('release', () => {
+        sentinel = null
+        if (active && document.visibilityState === 'visible') acquire()
+      })
+    } catch { sentinel = null }
   }
-  return null
+
+  const onVisible = () => {
+    if (active && document.visibilityState === 'visible' && !sentinel) acquire()
+  }
+
+  document.addEventListener('visibilitychange', onVisible)
+  await acquire()
+
+  return () => {
+    active = false
+    document.removeEventListener('visibilitychange', onVisible)
+    sentinel?.release().catch(() => {})
+  }
 }

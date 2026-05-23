@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useRealtimeGame } from '@/hooks/useRealtimeGame'
 import { useGeolocation } from '@/hooks/useGeolocation'
@@ -41,7 +41,9 @@ export default function PlayPage() {
     const id = sessionStorage.getItem(`player_${code}`)
     if (!id) { router.replace(`/game/${code}`); return }
     setPlayerId(id)
-    requestWakeLock()
+    let cleanupWakeLock = () => {}
+    requestWakeLock().then((cleanup) => { cleanupWakeLock = cleanup })
+    return () => cleanupWakeLock()
   }, [code, router])
 
   const { t } = useLanguage()
@@ -188,14 +190,15 @@ export default function PlayPage() {
 
   // Admin: track all player locations in realtime
   useEffect(() => {
-    if (!isAdmin || !game) return
+    if (!isAdmin || !game?.id) return
+    const gameId = game.id
 
     supabase
       .from('locations')
       .select('*')
-      .eq('game_id', game.id)
+      .eq('game_id', gameId)
       .order('created_at', { ascending: false })
-      .limit(100)
+      .limit(200)
       .then(({ data }) => {
         if (!data) return
         const latest = new Map<string, { lat: number; lng: number }>()
@@ -207,8 +210,8 @@ export default function PlayPage() {
       })
 
     const channel = supabase
-      .channel(`admin-locs-${game.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'locations', filter: `game_id=eq.${game.id}` }, (payload) => {
+      .channel(`admin-locs-${gameId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'locations', filter: `game_id=eq.${gameId}` }, (payload) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const loc = payload.new as any
         setAllPlayerLocations((prev) => {
@@ -220,46 +223,24 @@ export default function PlayPage() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [isAdmin, game])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, game?.id])
 
-  // Live teammate positions — hunters always see hunters, fugitives always see fugitives
+  // Live teammate positions — hunters see hunters, fugitives see fugitives
+  // Realtime subscription: runs once per game, filters client-side
   useEffect(() => {
-    if (!game || !playerId || isAdmin) return
-
-    const teammateIds = playersRef.current
-      .filter((p) => p.id !== playerId && (isFugitive ? p.role === 'fugitive' : p.role === 'hunter'))
-      .map((p) => p.id)
-
-    if (teammateIds.length > 0) {
-      supabase
-        .from('locations')
-        .select('*')
-        .eq('game_id', game.id)
-        .in('player_id', teammateIds)
-        .order('created_at', { ascending: false })
-        .limit(teammateIds.length * 3)
-        .then(({ data }) => {
-          if (!data) return
-          const latest = new Map<string, { lat: number; lng: number }>()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data.forEach((loc: any) => {
-            if (!latest.has(loc.player_id)) latest.set(loc.player_id, { lat: loc.latitude, lng: loc.longitude })
-          })
-          setTeamLocations(latest)
-        })
-    }
+    if (!game?.id || !playerId || isAdmin) return
+    const gameId = game.id
 
     const channel = supabase
-      .channel(`team-locs-${game.id}-${playerId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'locations', filter: `game_id=eq.${game.id}` }, (payload) => {
+      .channel(`team-locs-${gameId}-${playerId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'locations', filter: `game_id=eq.${gameId}` }, (payload) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const loc = payload.new as any
         if (loc.player_id === playerId) return
         const teammate = playersRef.current.find((p) => p.id === loc.player_id)
         if (!teammate) return
-        const isTeammate = isFugitive
-          ? teammate.role === 'fugitive'
-          : teammate.role === 'hunter'
+        const isTeammate = isFugitive ? teammate.role === 'fugitive' : teammate.role === 'hunter'
         if (!isTeammate) return
         setTeamLocations((prev) => {
           const next = new Map(prev)
@@ -270,7 +251,38 @@ export default function PlayPage() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.id, playerId, isAdmin, isFugitive])
+
+  // Initial teammate fetch — runs when players list is first populated (separate from subscription)
+  useEffect(() => {
+    if (!game?.id || !playerId || isAdmin || players.length === 0) return
+    const role = isFugitive ? 'fugitive' : 'hunter'
+    const teammateIds = players.filter((p) => p.id !== playerId && p.role === role).map((p) => p.id)
+    if (teammateIds.length === 0) return
+
+    supabase
+      .from('locations')
+      .select('player_id, latitude, longitude')
+      .eq('game_id', game.id)
+      .in('player_id', teammateIds)
+      .order('created_at', { ascending: false })
+      .limit(teammateIds.length * 5)
+      .then(({ data }) => {
+        if (!data) return
+        const latest = new Map<string, { lat: number; lng: number }>()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data.forEach((loc: any) => {
+          if (!latest.has(loc.player_id)) latest.set(loc.player_id, { lat: loc.latitude, lng: loc.longitude })
+        })
+        setTeamLocations((prev) => {
+          const next = new Map(prev)
+          // Don't overwrite positions already received via realtime
+          latest.forEach((v, k) => { if (!next.has(k)) next.set(k, v) })
+          return next
+        })
+      })
+  }, [game?.id, playerId, isAdmin, isFugitive, players.length])
 
   // Warn fugitive 30s before share
   useEffect(() => {
@@ -350,43 +362,46 @@ export default function PlayPage() {
       : null
   const withinCaptureRadius = distanceToFugitive !== null && distanceToFugitive <= game.capture_radius_meters
 
-  const mapMarkers = []
-  if (position) {
-    const selfType = isAdmin ? 'admin' as const : isFugitive ? 'fugitive' as const : 'hunter' as const
-    mapMarkers.push({ lat: position.latitude, lng: position.longitude, type: selfType, label: t('play_selfLabel', { name: currentPlayer.user_name }), isSelf: true })
-  }
-  if (isAdmin) {
-    allPlayerLocations.forEach((loc, pid) => {
-      if (pid === playerId) return
-      const player = players.find((p) => p.id === pid)
-      if (!player) return
-      const type = player.role === 'fugitive' ? 'fugitive' as const : player.role === 'admin' ? 'admin' as const : 'hunter' as const
-      mapMarkers.push({ lat: loc.lat, lng: loc.lng, type, label: player.user_name })
-    })
-  } else if (isHunter) {
-    if (latestFugitiveLocation) {
-      mapMarkers.push({ lat: latestFugitiveLocation.latitude, lng: latestFugitiveLocation.longitude, type: 'fugitive' as const, label: t('play_fugitiveLabel', { time: formatRelativeTime(latestFugitiveLocation.created_at) }) })
-    } else if (fugitiveSnapshot) {
-      const fp = players.find((p) => p.id === fugitiveSnapshot.playerId)
-      mapMarkers.push({ lat: fugitiveSnapshot.lat, lng: fugitiveSnapshot.lng, type: 'fugitive' as const, label: t('play_fugitiveStartLabel', { name: fp?.user_name ?? t('play_hunterLabel') }) })
+  const mapMarkers = useMemo(() => {
+    const result: { id: string; lat: number; lng: number; type: 'admin' | 'fugitive' | 'hunter'; label?: string; isSelf?: boolean }[] = []
+    if (position) {
+      const selfType = isAdmin ? 'admin' as const : isFugitive ? 'fugitive' as const : 'hunter' as const
+      result.push({ id: 'self', lat: position.latitude, lng: position.longitude, type: selfType, label: t('play_selfLabel', { name: currentPlayer.user_name }), isSelf: true })
     }
-  } else if (isFugitive) {
-    hunterLocations.forEach((loc, pid) => {
-      const player = players.find((p) => p.id === pid)
-      const type = player?.role === 'admin' ? 'admin' as const : 'hunter' as const
-      mapMarkers.push({ lat: loc.lat, lng: loc.lng, type, label: player?.user_name ?? t('play_hunterLabel') })
-    })
-  }
-
-  // Live teammate markers (always visible, same team)
-  if (!isAdmin) {
-    teamLocations.forEach((loc, pid) => {
-      const player = players.find((p) => p.id === pid)
-      if (!player) return
-      const type = player.role === 'fugitive' ? 'fugitive' as const : player.role === 'admin' ? 'admin' as const : 'hunter' as const
-      mapMarkers.push({ lat: loc.lat, lng: loc.lng, type, label: t('play_teamLabel', { name: player.user_name }) })
-    })
-  }
+    if (isAdmin) {
+      allPlayerLocations.forEach((loc, pid) => {
+        if (pid === playerId) return
+        const player = players.find((p) => p.id === pid)
+        if (!player) return
+        const type = player.role === 'fugitive' ? 'fugitive' as const : player.role === 'admin' ? 'admin' as const : 'hunter' as const
+        result.push({ id: `player_${pid}`, lat: loc.lat, lng: loc.lng, type, label: player.user_name })
+      })
+    } else if (isHunter) {
+      if (latestFugitiveLocation) {
+        result.push({ id: 'fugitive_live', lat: latestFugitiveLocation.latitude, lng: latestFugitiveLocation.longitude, type: 'fugitive' as const, label: t('play_fugitiveLabel', { time: formatRelativeTime(latestFugitiveLocation.created_at) }) })
+      } else if (fugitiveSnapshot) {
+        const fp = players.find((p) => p.id === fugitiveSnapshot.playerId)
+        result.push({ id: 'fugitive_snap', lat: fugitiveSnapshot.lat, lng: fugitiveSnapshot.lng, type: 'fugitive' as const, label: t('play_fugitiveStartLabel', { name: fp?.user_name ?? t('play_hunterLabel') }) })
+      }
+    } else if (isFugitive) {
+      hunterLocations.forEach((loc, pid) => {
+        const player = players.find((p) => p.id === pid)
+        const type = player?.role === 'admin' ? 'admin' as const : 'hunter' as const
+        result.push({ id: `hunter_${pid}`, lat: loc.lat, lng: loc.lng, type, label: player?.user_name ?? t('play_hunterLabel') })
+      })
+    }
+    // Live teammate markers
+    if (!isAdmin) {
+      teamLocations.forEach((loc, pid) => {
+        const player = players.find((p) => p.id === pid)
+        if (!player) return
+        const type = player.role === 'fugitive' ? 'fugitive' as const : player.role === 'admin' ? 'admin' as const : 'hunter' as const
+        result.push({ id: `player_${pid}`, lat: loc.lat, lng: loc.lng, type, label: t('play_teamLabel', { name: player.user_name }) })
+      })
+    }
+    return result
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [position, isAdmin, isFugitive, isHunter, allPlayerLocations, latestFugitiveLocation, fugitiveSnapshot, hunterLocations, teamLocations, players, playerId])
 
   const mapCenter: [number, number] | undefined = position
     ? [position.latitude, position.longitude]
@@ -501,6 +516,25 @@ export default function PlayPage() {
           {isFugitive && game.status === 'headstart' && (
             <div className="bg-blue-900/40 border border-blue-600 rounded-xl px-4 py-2.5 text-center">
               <p className="text-blue-300 font-semibold text-sm">{t('play_headstartInfo')}</p>
+            </div>
+          )}
+
+          {/* Fugitive: distance to each known hunter */}
+          {isFugitive && game.status === 'active' && position && hunterLocations.size > 0 && (
+            <div className="bg-red-900/20 border border-red-800 rounded-xl px-4 py-2.5 text-xs">
+              <p className="text-red-500 font-bold uppercase tracking-widest mb-2">{t('play_hunterDistances')}</p>
+              <div className="flex flex-col gap-1.5">
+                {Array.from(hunterLocations.entries()).map(([pid, loc]) => {
+                  const player = players.find((p) => p.id === pid)
+                  const dist = haversineDistance(position.latitude, position.longitude, loc.lat, loc.lng)
+                  return (
+                    <div key={pid} className="flex justify-between items-center">
+                      <span className="text-red-300">{player?.user_name ?? t('play_hunterLabel')}</span>
+                      <span className="font-mono font-bold text-red-200">{formatDistance(dist)}</span>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
 

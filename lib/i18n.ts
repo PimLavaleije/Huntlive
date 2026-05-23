@@ -155,6 +155,7 @@ const nl = {
   play_fugitiveStartLabel: '{name} – startpositie',
   play_teamLabel: '{name} (team)',
   play_hunterLabel: 'Jager',
+  play_hunterDistances: 'Afstand tot jagers',
 
   // End page
   end_runnersTitle: 'RUNNERS',
@@ -356,6 +357,7 @@ const en: Record<keyof typeof nl, string> = {
   play_fugitiveStartLabel: '{name} – start position',
   play_teamLabel: '{name} (team)',
   play_hunterLabel: 'Hunter',
+  play_hunterDistances: 'Distance to hunters',
 
   // End page
   end_runnersTitle: 'RUNNERS',
