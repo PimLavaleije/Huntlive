@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef } from 'react'
+import 'leaflet/dist/leaflet.css'
 import type { Location } from '@/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -228,10 +229,9 @@ export function MapView({
 
   return (
     <>
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
       <style>{`.leaflet-control-zoom { display: none; } @media (min-width: 768px) { .leaflet-control-zoom { display: block; } } @keyframes marker-pulse { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(2.8); opacity: 0; } } .marker-pulse { animation: marker-pulse 3s ease-out infinite; }`}</style>
       <div className={`relative ${className ?? 'w-full h-64 rounded-2xl overflow-hidden'}`}>
-        <div ref={mapRef} className="w-full h-full" />
+        <div ref={mapRef} className="absolute inset-0" />
 
         {/* Center-on-me button */}
         {markers.some((m) => m.isSelf) && (
