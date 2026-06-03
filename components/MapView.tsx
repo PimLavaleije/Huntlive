@@ -79,6 +79,9 @@ export function MapView({
 
       mapInstanceRef.current = map
 
+      // Re-measure after first layout pass (fixes wrong initial size)
+      requestAnimationFrame(() => { if (mapInstanceRef.current) map.invalidateSize() })
+
       // Redraw tiles whenever the container resizes (e.g. bottom panel open/close)
       const ro = new ResizeObserver(() => map.invalidateSize())
       ro.observe(mapRef.current!)
