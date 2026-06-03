@@ -56,6 +56,7 @@ export function useRealtimeGame(gameCode: string, playerId: string | null): UseR
       .eq('game_id', gameId)
       .eq('visible_to_hunters', true)
       .order('created_at', { ascending: true })
+      .limit(50)
     setLocationHistory(history ?? [])
   }, [])
 

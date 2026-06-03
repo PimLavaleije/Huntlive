@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase, getGameByCode } from '@/lib/supabase-client'
 import { Button } from '@/components/ui/Button'
@@ -21,7 +21,7 @@ export default function JoinGamePage() {
   const [gamePreview, setGamePreview] = useState<{ name: string; status: string; playerCount: number } | null>(null)
   const [previewing, setPreviewing] = useState(false)
 
-  useState(() => {
+  useEffect(() => {
     const loadPreview = async () => {
       setPreviewing(true)
       const game = await getGameByCode(code)
@@ -34,7 +34,8 @@ export default function JoinGamePage() {
       setPreviewing(false)
     }
     loadPreview()
-  })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code])
 
   const handleJoin = async () => {
     if (!name.trim()) { setError(t('join_nameError')); return }

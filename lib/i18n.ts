@@ -156,6 +156,8 @@ const nl = {
   play_teamLabel: '{name} (team)',
   play_hunterLabel: 'Jager',
   play_hunterDistances: 'Afstand tot jagers',
+  play_fugitiveDistance: 'Afstand tot boef',
+  play_geofenceWarning: '⚠️ Buiten speelgebied! Keer terug.',
 
   // End page
   end_runnersTitle: 'RUNNERS',
@@ -358,6 +360,8 @@ const en: Record<keyof typeof nl, string> = {
   play_teamLabel: '{name} (team)',
   play_hunterLabel: 'Hunter',
   play_hunterDistances: 'Distance to hunters',
+  play_fugitiveDistance: 'Distance to fugitive',
+  play_geofenceWarning: '⚠️ Outside play area! Turn back.',
 
   // End page
   end_runnersTitle: 'RUNNERS',

@@ -177,7 +177,7 @@ export default function EndPage() {
             {huntersWon && hunterBoard.map((p, i) => (
               <LeaderRow
                 key={p.id} rank={i+1} name={p.user_name} accent={accent}
-                stat={`${capsByHunter.get(p.id)??0} GEVANGEN`}
+                stat={`${capsByHunter.get(p.id)??0} ${t('end_captured')}`}
               />
             ))}
           </div>
@@ -197,7 +197,7 @@ export default function EndPage() {
               boxShadow: `0 0 20px ${accent}44`,
             }}
           >
-            <span>NIEUW SPEL</span>
+            <span>{t('end_newGame')}</span>
             <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>›</span>
           </button>
           <button
@@ -205,7 +205,7 @@ export default function EndPage() {
             className="flex-1 rounded-xl font-black tracking-widest text-white transition-transform active:scale-95"
             style={{ padding: '1rem', fontSize: '0.75rem', background: '#111827', border: '1px solid #374151' }}
           >
-            TERUG NAAR MENU
+            {t('end_backToMenu')}
           </button>
         </div>
       </div>

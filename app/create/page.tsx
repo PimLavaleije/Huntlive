@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase, generateGameCode } from '@/lib/supabase-client'
 import { Button } from '@/components/ui/Button'
@@ -36,6 +36,17 @@ export default function CreateGamePage() {
   })
 
   const [hostName, setHostName] = useState('')
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem('rematch_settings')
+    if (!raw) return
+    sessionStorage.removeItem('rematch_settings')
+    try {
+      const r = JSON.parse(raw)
+      setSettings((s) => ({ ...s, ...r }))
+      setActivePreset(null)
+    } catch {}
+  }, [])
 
   const handleCreate = async () => {
     if (!hostName.trim()) { setError(t('create_nameError')); return }

@@ -18,6 +18,7 @@ interface MapViewProps {
   markers?: MapMarker[]
   fugitiveHistory?: Location[]
   geofence?: { lat: number; lng: number; radius: number } | null
+  captureZone?: { lat: number; lng: number; radius: number } | null
   className?: string
 }
 
@@ -33,6 +34,7 @@ export function MapView({
   markers = [],
   fugitiveHistory = [],
   geofence,
+  captureZone,
   className,
 }: MapViewProps) {
   const { t } = useLanguage()
@@ -47,6 +49,8 @@ export function MapView({
   const historyDotsRef = useRef<any[]>([])
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const geofenceRef = useRef<any>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const captureZoneRef = useRef<any>(null)
   const hasSetInitialCenterRef = useRef(false)
   const markersPropsRef = useRef(markers)
   markersPropsRef.current = markers
@@ -184,6 +188,24 @@ export function MapView({
       geofenceRef.current.addTo(mapInstanceRef.current)
     })
   }, [geofence])
+
+  // Capture zone circle — centered on last known fugitive position
+  useEffect(() => {
+    if (!mapInstanceRef.current) return
+    import('leaflet').then((L) => {
+      if (captureZoneRef.current) { captureZoneRef.current.remove(); captureZoneRef.current = null }
+      if (!captureZone) return
+      captureZoneRef.current = L.circle([captureZone.lat, captureZone.lng], {
+        radius: captureZone.radius,
+        color: '#ef4444',
+        fillColor: '#ef4444',
+        fillOpacity: 0.1,
+        dashArray: '6 4',
+        weight: 1.5,
+      })
+      captureZoneRef.current.addTo(mapInstanceRef.current)
+    })
+  }, [captureZone])
 
   const handleCenterOnSelf = () => {
     const self = markersPropsRef.current.find((m) => m.isSelf)

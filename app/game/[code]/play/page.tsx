@@ -5,7 +5,7 @@ import { useRealtimeGame } from '@/hooks/useRealtimeGame'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { useGameTimer } from '@/hooks/useGameTimer'
 import { supabase, saveLocation } from '@/lib/supabase-client'
-import { haversineDistance, formatDistance } from '@/lib/distance'
+import { haversineDistance, formatDistance, isInsideGeofence } from '@/lib/distance'
 import { formatRelativeTime } from '@/lib/game-state'
 import { requestWakeLock } from '@/lib/geolocation'
 import { MapView } from '@/components/MapView'
@@ -183,6 +183,13 @@ export default function PlayPage() {
         }
       }
       await saveLocation(game.id, playerId, position.latitude, position.longitude, position.accuracy, shouldBeVisible)
+      // Auto-set geofence center to fugitive's first GPS save if not yet set
+      if (isFugitive && game.geofence_radius_meters && !game.geofence_center_lat) {
+        await supabase.from('games')
+          .update({ geofence_center_lat: position.latitude, geofence_center_lng: position.longitude })
+          .eq('id', game.id)
+          .is('geofence_center_lat', null)
+      }
     }, 8000)
 
     return () => clearInterval(interval)
@@ -302,10 +309,14 @@ export default function PlayPage() {
   const handleCapture = async () => {
     if (!position || !game || !playerId) return { success: false, message: 'Locatie niet beschikbaar' }
 
+    const fugitivePlayer = players.find((p) => p.role === 'fugitive')
+    if (!fugitivePlayer) return { success: false, message: 'Geen boef gevonden' }
+
     const { data: fugitiveLocations } = await supabase
       .from('locations')
       .select('*')
       .eq('game_id', game.id)
+      .eq('player_id', fugitivePlayer.id)
       .order('created_at', { ascending: false })
       .limit(1)
 
@@ -313,12 +324,11 @@ export default function PlayPage() {
     if (!fugitiveLoc) return { success: false, message: 'Locatie van boef niet beschikbaar' }
 
     const distance = haversineDistance(position.latitude, position.longitude, fugitiveLoc.latitude, fugitiveLoc.longitude)
-    const fugitivePlayer = players.find((p) => p.role === 'fugitive')
 
     await supabase.from('capture_events').insert({
       game_id: game.id,
       hunter_player_id: playerId,
-      fugitive_player_id: fugitivePlayer?.id ?? '',
+      fugitive_player_id: fugitivePlayer.id,
       latitude: position.latitude,
       longitude: position.longitude,
       distance_meters: Math.round(distance),
@@ -403,6 +413,20 @@ export default function PlayPage() {
       : null
   const withinCaptureRadius = distanceToFugitive !== null && distanceToFugitive <= game.capture_radius_meters
 
+  const isOutsideGeofence = !!(
+    game.geofence_center_lat && game.geofence_radius_meters && position &&
+    !isInsideGeofence(position.latitude, position.longitude, game.geofence_center_lat, game.geofence_center_lng!, game.geofence_radius_meters)
+  )
+
+  // Capture zone: red dashed circle centered on last known fugitive position
+  const captureZone = isHunter && game.capture_radius_meters
+    ? latestFugitiveLocation
+      ? { lat: latestFugitiveLocation.latitude, lng: latestFugitiveLocation.longitude, radius: game.capture_radius_meters }
+      : fugitiveSnapshot
+      ? { lat: fugitiveSnapshot.lat, lng: fugitiveSnapshot.lng, radius: game.capture_radius_meters }
+      : null
+    : null
+
   const mapCenter: [number, number] | undefined = position
     ? [position.latitude, position.longitude]
     : isHunter && latestFugitiveLocation
@@ -429,6 +453,7 @@ export default function PlayPage() {
               ? { lat: game.geofence_center_lat, lng: game.geofence_center_lng!, radius: game.geofence_radius_meters }
               : null
           }
+          captureZone={captureZone}
           className="w-full h-full"
         />
 
@@ -470,6 +495,15 @@ export default function PlayPage() {
             <LocationStatus accuracy={accuracy} error={geoError} loading={geoLoading} />
           </div>
         </div>
+
+        {/* ── GEOFENCE WARNING ── */}
+        {isOutsideGeofence && (
+          <div className="absolute z-[500] left-1/2 -translate-x-1/2 pointer-events-none animate-pulse" style={{ bottom: '56px' }}>
+            <div className="rounded-xl px-3 py-1.5 text-xs font-bold text-orange-200 text-center" style={{ background: 'rgba(120,40,0,0.92)', border: '1px solid #f97316' }}>
+              {t('play_geofenceWarning')}
+            </div>
+          </div>
+        )}
 
         {/* ── PANEL TOGGLE BUTTON ── */}
         <button
@@ -540,11 +574,22 @@ export default function PlayPage() {
 
           {/* Hunter info */}
           {isHunter && latestFugitiveLocation && (
-            <div className="flex justify-between items-center bg-red-900/30 border border-red-700 rounded-xl px-4 py-2.5 text-sm">
-              <span className="text-red-300">{t('play_fugitiveSeen')}</span>
-              <span className="text-red-200">{formatRelativeTime(latestFugitiveLocation.created_at)}</span>
-              {game.status === 'active' && (
-                <span className="text-red-400 text-xs">{t('play_nextPingSuffix', { n: nextUpdateLeft })}</span>
+            <div className="bg-red-900/30 border border-red-700 rounded-xl px-4 py-2.5 text-sm flex flex-col gap-1.5">
+              <div className="flex justify-between items-center">
+                <span className="text-red-300">{t('play_fugitiveSeen')}</span>
+                <span className="text-red-200 text-xs">{formatRelativeTime(latestFugitiveLocation.created_at)}</span>
+                {game.status === 'active' && (
+                  <span className="text-red-400 text-xs">{t('play_nextPingSuffix', { n: nextUpdateLeft })}</span>
+                )}
+              </div>
+              {distanceToFugitive !== null && (
+                <div className="flex justify-between items-center">
+                  <span className="text-red-400 text-xs uppercase tracking-widest">{t('play_fugitiveDistance')}</span>
+                  <span className={`font-mono font-bold text-sm ${withinCaptureRadius ? 'text-green-400' : 'text-red-200'}`}>
+                    {formatDistance(distanceToFugitive)}
+                    {withinCaptureRadius && <span className="text-green-400 ml-1 text-xs">✓</span>}
+                  </span>
+                </div>
               )}
             </div>
           )}
