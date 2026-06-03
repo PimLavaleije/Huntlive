@@ -352,21 +352,11 @@ export default function PlayPage() {
     await supabase.from('players').update({ role: newRole }).eq('id', pid)
   }
 
-  if (!game || !currentPlayer) {
-    return <div className="min-h-svh flex items-center justify-center text-gray-600 tracking-widest uppercase text-xs" style={{ background: '#000000' }}>{t('play_loading')}</div>
-  }
-
-  const distanceToFugitive =
-    position && latestFugitiveLocation && !isFugitive
-      ? haversineDistance(position.latitude, position.longitude, latestFugitiveLocation.latitude, latestFugitiveLocation.longitude)
-      : null
-  const withinCaptureRadius = distanceToFugitive !== null && distanceToFugitive <= game.capture_radius_meters
-
   const mapMarkers = useMemo(() => {
     const result: { id: string; lat: number; lng: number; type: 'admin' | 'fugitive' | 'hunter'; label?: string; isSelf?: boolean }[] = []
     if (position) {
       const selfType = isAdmin ? 'admin' as const : isFugitive ? 'fugitive' as const : 'hunter' as const
-      result.push({ id: 'self', lat: position.latitude, lng: position.longitude, type: selfType, label: t('play_selfLabel', { name: currentPlayer.user_name }), isSelf: true })
+      result.push({ id: 'self', lat: position.latitude, lng: position.longitude, type: selfType, label: t('play_selfLabel', { name: currentPlayer?.user_name ?? '' }), isSelf: true })
     }
     if (isAdmin) {
       allPlayerLocations.forEach((loc, pid) => {
@@ -402,6 +392,16 @@ export default function PlayPage() {
     return result
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position, isAdmin, isFugitive, isHunter, allPlayerLocations, latestFugitiveLocation, fugitiveSnapshot, hunterLocations, teamLocations, players, playerId])
+
+  if (!game || !currentPlayer) {
+    return <div className="min-h-svh flex items-center justify-center text-gray-600 tracking-widest uppercase text-xs" style={{ background: '#000000' }}>{t('play_loading')}</div>
+  }
+
+  const distanceToFugitive =
+    position && latestFugitiveLocation && !isFugitive
+      ? haversineDistance(position.latitude, position.longitude, latestFugitiveLocation.latitude, latestFugitiveLocation.longitude)
+      : null
+  const withinCaptureRadius = distanceToFugitive !== null && distanceToFugitive <= game.capture_radius_meters
 
   const mapCenter: [number, number] | undefined = position
     ? [position.latitude, position.longitude]
