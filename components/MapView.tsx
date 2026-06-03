@@ -78,10 +78,19 @@ export function MapView({
       }).addTo(map)
 
       mapInstanceRef.current = map
+
+      // Redraw tiles whenever the container resizes (e.g. bottom panel open/close)
+      const ro = new ResizeObserver(() => map.invalidateSize())
+      ro.observe(mapRef.current!)
+      // Store cleanup on the map instance so the return below can use it
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(map as any)._roCleanup = () => ro.disconnect()
     })
 
     return () => {
       if (mapInstanceRef.current) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(mapInstanceRef.current as any)._roCleanup?.()
         mapInstanceRef.current.remove()
         mapInstanceRef.current = null
       }
