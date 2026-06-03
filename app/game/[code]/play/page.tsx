@@ -40,6 +40,9 @@ export default function PlayPage() {
   const positionRef = useRef<{ latitude: number; longitude: number; accuracy: number } | null>(null)
   const gameRef = useRef<Game | null>(null)
   const isFugitiveSaveRef = useRef(false)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const posBroadcastChannelRef = useRef<any>(null)
+  const bufferedHunterPositionsRef = useRef<Map<string, { lat: number; lng: number }>>(new Map())
 
   useEffect(() => {
     const id = sessionStorage.getItem(`player_${code}`)
@@ -144,7 +147,9 @@ export default function PlayPage() {
         title: t('play_modalHuntersReleased'),
         body: t('play_modalHuntersReleasedBody'),
       })
-      fetchHunterSnapshot(game.id)
+      const buf = bufferedHunterPositionsRef.current
+      if (buf.size > 0) setHunterLocations(new Map(buf))
+      else fetchHunterSnapshot(game.id)
       showNotification(t('play_notifLocSharedHunter'), 'ping')
     } else if (isAdmin) {
       setPhaseModal({ title: t('play_modalHuntStarted'), body: t('play_modalHuntStartedBody') })
@@ -202,8 +207,20 @@ export default function PlayPage() {
           lastSnapshotRef.current = completedIntervals
           shouldBeVisible = true
           showNotification(notifMsg, 'ping')
-          fetchHunterSnapshot(g.id)
+          // Reveal hunter positions buffered from broadcasts; fall back to DB if buffer is empty
+          const buf = bufferedHunterPositionsRef.current
+          if (buf.size > 0) {
+            setHunterLocations(new Map(buf))
+          } else {
+            fetchHunterSnapshot(g.id)
+          }
         }
+      } else if (!isF && posBroadcastChannelRef.current) {
+        // Hunters broadcast their position so the fugitive can receive it without DB/RLS
+        posBroadcastChannelRef.current.send({
+          type: 'broadcast', event: 'pos',
+          payload: { pid: playerId, lat: pos.latitude, lng: pos.longitude },
+        })
       }
       await saveLocation(g.id, playerId, pos.latitude, pos.longitude, pos.accuracy, shouldBeVisible)
       // Auto-set geofence center to fugitive's first GPS save if not yet set
@@ -329,6 +346,25 @@ export default function PlayPage() {
     }, 30_000)
     return () => clearInterval(interval)
   }, [playerId])
+
+  // Position broadcast channel — bypasses RLS so fugitive can receive hunter GPS without DB read restrictions.
+  // Hunters send their position every 8s; fugitive buffers them and reveals at ping time.
+  useEffect(() => {
+    if (!game?.id || !playerId) return
+    const ch = supabase.channel(`pos-${game.id}`)
+    if (isFugitive) {
+      ch.on('broadcast', { event: 'pos' }, ({ payload }: { payload: { pid: string; lat: number; lng: number } }) => {
+        bufferedHunterPositionsRef.current.set(payload.pid, { lat: payload.lat, lng: payload.lng })
+      })
+    }
+    ch.subscribe()
+    posBroadcastChannelRef.current = ch
+    return () => {
+      supabase.removeChannel(ch)
+      posBroadcastChannelRef.current = null
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.id, playerId, isFugitive])
 
   const handleCapture = async () => {
     if (!position || !game || !playerId) return { success: false, message: 'Locatie niet beschikbaar' }
