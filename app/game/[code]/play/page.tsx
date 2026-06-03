@@ -14,7 +14,7 @@ import { CaptureButton } from '@/components/CaptureButton'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { RoleBadge } from '@/components/RoleBadge'
-import type { Location, Player, PlayerRole } from '@/types'
+import type { Game, Location, Player, PlayerRole } from '@/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { LangToggle } from '@/components/LangToggle'
 
@@ -36,6 +36,10 @@ export default function PlayPage() {
   const lastSnapshotRef = useRef<number>(0)
   const prevGameStatusRef = useRef<string | null>(null)
   const playersRef = useRef<Player[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const positionRef = useRef<{ latitude: number; longitude: number; accuracy: number } | null>(null)
+  const gameRef = useRef<Game | null>(null)
+  const isFugitiveSaveRef = useRef(false)
 
   useEffect(() => {
     const id = sessionStorage.getItem(`player_${code}`)
@@ -55,6 +59,11 @@ export default function PlayPage() {
   const isAdmin = currentPlayer?.role === 'admin'
   const isFugitive = currentPlayer?.role === 'fugitive'
   const isHunter = currentPlayer?.role === 'hunter' || isAdmin
+
+  // Keep refs current so interval callbacks see latest values without restarting
+  positionRef.current = position
+  gameRef.current = game
+  isFugitiveSaveRef.current = isFugitive
 
   const showNotification = useCallback((msg: string) => {
     setNotification(msg)
@@ -164,36 +173,46 @@ export default function PlayPage() {
     return () => clearInterval(tid)
   }, [game?.id, game?.status, game?.active_at, game?.ends_at])
 
-  // Save location every 8 seconds; fugitive location becomes visible at each configured interval
+  // Save location every 8 seconds; fugitive location becomes visible at each configured interval.
+  // Reads position/game/role from refs so the interval is NOT restarted on every GPS update
+  // (GPS fires every 1-2s on mobile — if position were in deps, the 8s timer would never complete).
   useEffect(() => {
-    if (!game || !playerId || !position) return
+    if (!game?.id || !playerId) return
     if (game.status !== 'headstart' && game.status !== 'active') return
+    const notifMsg = t('play_notifLocationsShared')
 
     const interval = setInterval(async () => {
+      const pos = positionRef.current
+      const g = gameRef.current
+      const isF = isFugitiveSaveRef.current
+      if (!pos || !g) return
+      if (g.status !== 'headstart' && g.status !== 'active') return
+
       let shouldBeVisible = false
-      if (isFugitive && game.status === 'active' && game.active_at) {
-        const intervalMs = game.location_interval_minutes * 60 * 1000
-        const elapsed = Date.now() - new Date(game.active_at).getTime()
+      if (isF && g.status === 'active' && g.active_at) {
+        const intervalMs = g.location_interval_minutes * 60 * 1000
+        const elapsed = Date.now() - new Date(g.active_at).getTime()
         const completedIntervals = Math.floor(elapsed / intervalMs)
         if (completedIntervals > lastSnapshotRef.current) {
           lastSnapshotRef.current = completedIntervals
           shouldBeVisible = true
-          showNotification(t('play_notifLocationsShared'))
-          fetchHunterSnapshot(game.id)
+          showNotification(notifMsg)
+          fetchHunterSnapshot(g.id)
         }
       }
-      await saveLocation(game.id, playerId, position.latitude, position.longitude, position.accuracy, shouldBeVisible)
+      await saveLocation(g.id, playerId, pos.latitude, pos.longitude, pos.accuracy, shouldBeVisible)
       // Auto-set geofence center to fugitive's first GPS save if not yet set
-      if (isFugitive && game.geofence_radius_meters && !game.geofence_center_lat) {
+      if (isF && g.geofence_radius_meters && !g.geofence_center_lat) {
         await supabase.from('games')
-          .update({ geofence_center_lat: position.latitude, geofence_center_lng: position.longitude })
-          .eq('id', game.id)
+          .update({ geofence_center_lat: pos.latitude, geofence_center_lng: pos.longitude })
+          .eq('id', g.id)
           .is('geofence_center_lat', null)
       }
     }, 8000)
 
     return () => clearInterval(interval)
-  }, [isFugitive, game, playerId, position, showNotification, fetchHunterSnapshot])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.id, game?.status, playerId, showNotification, fetchHunterSnapshot])
 
   // Admin: track all player locations in realtime
   useEffect(() => {
