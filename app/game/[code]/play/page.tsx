@@ -24,7 +24,7 @@ export default function PlayPage() {
   const code = (params.code as string).toUpperCase()
 
   const [playerId, setPlayerId] = useState<string | null>(null)
-  const [notification, setNotification] = useState<string | null>(null)
+  const [notification, setNotification] = useState<{ msg: string; type: 'info' | 'ping' | 'warn' } | null>(null)
   const [panelOpen, setPanelOpen] = useState(true)
   const [allPlayerLocations, setAllPlayerLocations] = useState<Map<string, { lat: number; lng: number }>>(new Map())
   const [hunterLocations, setHunterLocations] = useState<Map<string, { lat: number; lng: number }>>(new Map())
@@ -65,10 +65,14 @@ export default function PlayPage() {
   gameRef.current = game
   isFugitiveSaveRef.current = isFugitive
 
-  const showNotification = useCallback((msg: string) => {
-    setNotification(msg)
+  const showNotification = useCallback((msg: string, type: 'info' | 'ping' | 'warn' = 'info') => {
+    setNotification({ msg, type })
+    if ('vibrate' in navigator) {
+      if (type === 'ping') navigator.vibrate([150, 80, 150, 80, 400])
+      else if (type === 'warn') navigator.vibrate([400, 100, 200])
+    }
     if (notificationTimer.current) clearTimeout(notificationTimer.current)
-    notificationTimer.current = setTimeout(() => setNotification(null), 5000)
+    notificationTimer.current = setTimeout(() => setNotification(null), type === 'ping' ? 7000 : 4500)
   }, [])
 
   useEffect(() => {
@@ -84,7 +88,7 @@ export default function PlayPage() {
   useEffect(() => {
     if (!isHunter || !latestFugitiveLocation) return
     if (prevLocationRef.current?.id !== latestFugitiveLocation.id) {
-      if (prevLocationRef.current) showNotification(t('play_notifNewFugitiveLoc'))
+      if (prevLocationRef.current) showNotification(t('play_notifNewFugitiveLoc'), 'ping')
       prevLocationRef.current = latestFugitiveLocation
     }
   }, [latestFugitiveLocation, isHunter, showNotification])
@@ -134,13 +138,14 @@ export default function PlayPage() {
     prevGameStatusRef.current = game.status
     if (prev !== 'headstart' || game.status !== 'active') return
 
+    if ('vibrate' in navigator) navigator.vibrate([300, 100, 300])
     if (isFugitive) {
       setPhaseModal({
         title: t('play_modalHuntersReleased'),
         body: t('play_modalHuntersReleasedBody'),
       })
       fetchHunterSnapshot(game.id)
-      showNotification(t('play_notifLocSharedHunter'))
+      showNotification(t('play_notifLocSharedHunter'), 'ping')
     } else if (isAdmin) {
       setPhaseModal({ title: t('play_modalHuntStarted'), body: t('play_modalHuntStartedBody') })
     } else {
@@ -149,7 +154,7 @@ export default function PlayPage() {
         body: t('play_modalGoHuntBody'),
       })
       fetchFugitiveSnapshot(game.id)
-      showNotification(t('play_notifLocSharedFugitive'))
+      showNotification(t('play_notifLocSharedFugitive'), 'ping')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.status])
@@ -196,7 +201,7 @@ export default function PlayPage() {
         if (completedIntervals > lastSnapshotRef.current) {
           lastSnapshotRef.current = completedIntervals
           shouldBeVisible = true
-          showNotification(notifMsg)
+          showNotification(notifMsg, 'ping')
           fetchHunterSnapshot(g.id)
         }
       }
@@ -313,7 +318,7 @@ export default function PlayPage() {
   // Warn fugitive 30s before share
   useEffect(() => {
     if (!isFugitive || !game || game.status !== 'active') return
-    if (nextUpdateLeft === 30) showNotification(t('play_notifWarning30s'))
+    if (nextUpdateLeft === 30) showNotification(t('play_notifWarning30s'), 'warn')
   }, [nextUpdateLeft, isFugitive, game, showNotification])
 
   // Heartbeat
@@ -432,6 +437,14 @@ export default function PlayPage() {
       : null
   const withinCaptureRadius = distanceToFugitive !== null && distanceToFugitive <= game.capture_radius_meters
 
+  const hunterDistances: { id: string; name: string; dist: number }[] = isFugitive && position
+    ? Array.from(hunterLocations.entries()).map(([pid, loc]) => ({
+        id: pid,
+        name: players.find((p) => p.id === pid)?.user_name ?? t('play_hunterLabel'),
+        dist: haversineDistance(position.latitude, position.longitude, loc.lat, loc.lng),
+      })).sort((a, b) => a.dist - b.dist)
+    : []
+
   const isOutsideGeofence = !!(
     game.geofence_center_lat && game.geofence_radius_meters && position &&
     !isInsideGeofence(position.latitude, position.longitude, game.geofence_center_lat, game.geofence_center_lng!, game.geofence_radius_meters)
@@ -503,8 +516,12 @@ export default function PlayPage() {
 
         {/* ── NOTIFICATION TOAST ── */}
         {notification && (
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[500] bg-orange-600/95 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg backdrop-blur-sm max-w-xs text-center border border-orange-500 pointer-events-none">
-            {notification}
+          <div className={`absolute top-20 left-1/2 -translate-x-1/2 z-[500] text-white text-sm font-semibold px-4 py-3 rounded-2xl shadow-xl backdrop-blur-sm max-w-[85vw] text-center pointer-events-none ${
+            notification.type === 'ping' ? 'bg-red-800/95 border border-red-500' :
+            notification.type === 'warn' ? 'bg-orange-800/95 border border-orange-500' :
+            'bg-gray-900/95 border border-gray-700'
+          }`}>
+            {notification.msg}
           </div>
         )}
 
@@ -517,10 +534,104 @@ export default function PlayPage() {
 
         {/* ── GEOFENCE WARNING ── */}
         {isOutsideGeofence && (
-          <div className="absolute z-[500] left-1/2 -translate-x-1/2 pointer-events-none animate-pulse" style={{ bottom: '56px' }}>
+          <div className="absolute z-[500] left-1/2 -translate-x-1/2 pointer-events-none animate-pulse" style={{ bottom: '152px' }}>
             <div className="rounded-xl px-3 py-1.5 text-xs font-bold text-orange-200 text-center" style={{ background: 'rgba(120,40,0,0.92)', border: '1px solid #f97316' }}>
               {t('play_geofenceWarning')}
             </div>
+          </div>
+        )}
+
+        {/* ── BOTTOM HUD (always visible — key tactical info without opening panel) ── */}
+        {game.status !== 'waiting' && game.status !== 'finished' && (
+          <div className="absolute z-[500] left-3 right-3" style={{ bottom: '56px' }}>
+
+            {/* FUGITIVE: headstart countdown */}
+            {isFugitive && game.status === 'headstart' && (
+              <div className="rounded-2xl px-4 py-3 flex items-center justify-between"
+                style={{ background: 'rgba(0,18,6,0.93)', border: '1.5px solid rgba(34,197,94,0.35)' }}>
+                <span className="text-xs font-bold text-green-500 uppercase tracking-widest">🏃 {t('play_headstart')}</span>
+                <span className="font-mono font-black text-3xl text-green-400 tabular-nums leading-none">
+                  {String(Math.floor(headstartLeft / 60)).padStart(2, '0')}:{String(headstartLeft % 60).padStart(2, '0')}
+                </span>
+              </div>
+            )}
+
+            {/* FUGITIVE: active — ping countdown + individual hunter distances */}
+            {isFugitive && game.status === 'active' && (
+              <div className={`rounded-2xl px-4 py-3 flex flex-col gap-2.5 ${nextUpdateLeft <= 30 ? 'animate-pulse' : ''}`}
+                style={{
+                  background: nextUpdateLeft <= 30 ? 'rgba(70,8,8,0.95)' : 'rgba(0,0,0,0.92)',
+                  border: `1.5px solid ${nextUpdateLeft <= 30 ? 'rgb(220,38,38)' : 'rgba(255,255,255,0.08)'}`,
+                }}>
+                {/* Ping row */}
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs font-bold uppercase tracking-widest ${nextUpdateLeft <= 30 ? 'text-red-400' : 'text-gray-500'}`}>
+                    📡 {t('play_hudPingIn')}
+                  </span>
+                  <span className={`font-mono font-black text-3xl tabular-nums leading-none ${nextUpdateLeft <= 30 ? 'text-red-300' : 'text-white'}`}>
+                    {String(Math.floor(nextUpdateLeft / 60)).padStart(2, '0')}:{String(nextUpdateLeft % 60).padStart(2, '0')}
+                  </span>
+                </div>
+                {/* Individual hunter distances */}
+                {hunterDistances.length > 0 && (
+                  <div className="flex flex-col gap-1" style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: '8px' }}>
+                    <span className="text-xs text-red-500 uppercase tracking-widest font-bold mb-0.5">🔴 {t('play_hudJagers')}</span>
+                    {hunterDistances.map(({ id, name, dist }) => (
+                      <div key={id} className="flex items-center justify-between">
+                        <span className="text-red-300 text-sm truncate max-w-[55%]">{name}</span>
+                        <span className={`font-mono font-bold text-sm tabular-nums ${dist < 300 ? 'text-red-300' : dist < 800 ? 'text-orange-400' : 'text-gray-400'}`}>
+                          {formatDistance(dist)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* HUNTER: headstart — waiting */}
+            {isHunter && game.status === 'headstart' && (
+              <div className="rounded-2xl px-4 py-3 flex items-center justify-between"
+                style={{ background: 'rgba(0,0,0,0.92)', border: '1.5px solid rgba(251,146,60,0.25)' }}>
+                <span className="text-xs font-bold text-orange-400 uppercase tracking-widest">⏱ {t('play_headstart')}</span>
+                <span className="font-mono font-black text-3xl text-white tabular-nums leading-none">
+                  {String(Math.floor(headstartLeft / 60)).padStart(2, '0')}:{String(headstartLeft % 60).padStart(2, '0')}
+                </span>
+              </div>
+            )}
+
+            {/* HUNTER: active — last location + distance + next ping */}
+            {isHunter && game.status === 'active' && (
+              <div className="rounded-2xl px-4 py-3 flex items-center gap-3"
+                style={{ background: 'rgba(0,0,0,0.92)', border: '1.5px solid rgba(239,68,68,0.2)' }}>
+                {latestFugitiveLocation ? (
+                  <>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-xs font-bold text-red-500 uppercase tracking-widest">📍 {t('play_fugitiveSeen')}</span>
+                      <span className="text-white text-sm font-medium">{formatRelativeTime(latestFugitiveLocation.created_at)}</span>
+                    </div>
+                    {distanceToFugitive !== null && (
+                      <span className={`font-mono font-black text-3xl tabular-nums leading-none shrink-0 ${withinCaptureRadius ? 'text-green-400' : 'text-red-300'}`}>
+                        {formatDistance(distanceToFugitive)}{withinCaptureRadius && <span className="text-green-400 text-base ml-1">✓</span>}
+                      </span>
+                    )}
+                    <div className="flex flex-col text-right shrink-0">
+                      <span className="text-xs text-gray-600 uppercase tracking-widest">{t('play_hudNext')}</span>
+                      <span className={`font-mono text-base font-bold tabular-nums ${nextUpdateLeft <= 30 ? 'text-red-400 animate-pulse' : 'text-gray-400'}`}>
+                        {String(Math.floor(nextUpdateLeft / 60)).padStart(2, '0')}:{String(nextUpdateLeft % 60).padStart(2, '0')}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-gray-500 text-sm">{t('play_hudWaiting')}</span>
+                    <span className={`font-mono text-xl font-black tabular-nums ${nextUpdateLeft <= 30 ? 'text-orange-400' : 'text-gray-400'}`}>
+                      {String(Math.floor(nextUpdateLeft / 60)).padStart(2, '0')}:{String(nextUpdateLeft % 60).padStart(2, '0')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -558,64 +669,9 @@ export default function PlayPage() {
         <div className="px-4 py-3 flex flex-col gap-3 max-h-[45vh] overflow-y-auto" style={{ background: '#000000', borderTop: '1px solid #1a2540' }}>
           <div className="flex justify-end"><LangToggle /></div>
 
-          {/* Fugitive info */}
-          {isFugitive && game.status === 'active' && (
-            <div className="flex justify-between items-center bg-blue-900/30 border border-blue-700 rounded-xl px-4 py-2.5 text-sm">
-              <span className="text-blue-300">{t('play_nextPing')}</span>
-              <span className={`font-mono font-bold ${nextUpdateLeft <= 30 ? 'text-red-400 animate-pulse' : 'text-blue-200'}`}>{nextUpdateLeft}s</span>
-            </div>
-          )}
-
           {isFugitive && game.status === 'headstart' && (
             <div className="bg-blue-900/40 border border-blue-600 rounded-xl px-4 py-2.5 text-center">
               <p className="text-blue-300 font-semibold text-sm">{t('play_headstartInfo')}</p>
-            </div>
-          )}
-
-          {/* Fugitive: distance to each known hunter */}
-          {isFugitive && game.status === 'active' && position && hunterLocations.size > 0 && (
-            <div className="bg-red-900/20 border border-red-800 rounded-xl px-4 py-2.5 text-xs">
-              <p className="text-red-500 font-bold uppercase tracking-widest mb-2">{t('play_hunterDistances')}</p>
-              <div className="flex flex-col gap-1.5">
-                {Array.from(hunterLocations.entries()).map(([pid, loc]) => {
-                  const player = players.find((p) => p.id === pid)
-                  const dist = haversineDistance(position.latitude, position.longitude, loc.lat, loc.lng)
-                  return (
-                    <div key={pid} className="flex justify-between items-center">
-                      <span className="text-red-300">{player?.user_name ?? t('play_hunterLabel')}</span>
-                      <span className="font-mono font-bold text-red-200">{formatDistance(dist)}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Hunter info */}
-          {isHunter && latestFugitiveLocation && (
-            <div className="bg-red-900/30 border border-red-700 rounded-xl px-4 py-2.5 text-sm flex flex-col gap-1.5">
-              <div className="flex justify-between items-center">
-                <span className="text-red-300">{t('play_fugitiveSeen')}</span>
-                <span className="text-red-200 text-xs">{formatRelativeTime(latestFugitiveLocation.created_at)}</span>
-                {game.status === 'active' && (
-                  <span className="text-red-400 text-xs">{t('play_nextPingSuffix', { n: nextUpdateLeft })}</span>
-                )}
-              </div>
-              {distanceToFugitive !== null && (
-                <div className="flex justify-between items-center">
-                  <span className="text-red-400 text-xs uppercase tracking-widest">{t('play_fugitiveDistance')}</span>
-                  <span className={`font-mono font-bold text-sm ${withinCaptureRadius ? 'text-green-400' : 'text-red-200'}`}>
-                    {formatDistance(distanceToFugitive)}
-                    {withinCaptureRadius && <span className="text-green-400 ml-1 text-xs">✓</span>}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {isHunter && !latestFugitiveLocation && game.status === 'active' && (
-            <div className="bg-red-900/20 border border-red-800 rounded-xl px-4 py-2.5 text-center text-sm text-red-400">
-              {t('play_waitingPing', { n: nextUpdateLeft })}
             </div>
           )}
 

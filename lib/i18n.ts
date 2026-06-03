@@ -158,6 +158,11 @@ const nl = {
   play_hunterDistances: 'Afstand tot jagers',
   play_fugitiveDistance: 'Afstand tot boef',
   play_geofenceWarning: '⚠️ Buiten speelgebied! Keer terug.',
+  play_hudPingIn: 'Ping in',
+  play_hudClosestHunter: 'Dichtste jager',
+  play_hudNext: 'Volgende',
+  play_hudWaiting: 'Wacht op eerste ping',
+  play_hudJagers: 'Jagers',
 
   // End page
   end_runnersTitle: 'RUNNERS',
@@ -362,6 +367,11 @@ const en: Record<keyof typeof nl, string> = {
   play_hunterDistances: 'Distance to hunters',
   play_fugitiveDistance: 'Distance to fugitive',
   play_geofenceWarning: '⚠️ Outside play area! Turn back.',
+  play_hudPingIn: 'Ping in',
+  play_hudClosestHunter: 'Closest hunter',
+  play_hudNext: 'Next',
+  play_hudWaiting: 'Waiting for first ping',
+  play_hudJagers: 'Hunters',
 
   // End page
   end_runnersTitle: 'RUNNERS',
