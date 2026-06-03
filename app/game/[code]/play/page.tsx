@@ -397,10 +397,10 @@ export default function PlayPage() {
 
     if (distance <= game.capture_radius_meters) {
       await supabase.from('games').update({ status: 'finished', winner: 'hunters' }).eq('id', game.id)
-      return { success: true, distance, message: `Gevangen! Afstand: ${formatDistance(distance)}` }
+      return { success: true, distance, message: t('play_captureSuccessMsg', { dist: formatDistance(distance) }) }
     }
 
-    return { success: false, distance, message: `Te ver weg. Afstand: ${formatDistance(distance)}. Radius: ${game.capture_radius_meters}m` }
+    return { success: false, distance, message: t('play_captureTooFarMsg', { dist: formatDistance(distance), radius: String(game.capture_radius_meters) }) }
   }
 
   const handleSurrender = async () => {
@@ -681,6 +681,26 @@ export default function PlayPage() {
         </button>
       </div>
 
+      {/* ── PAUSED OVERLAY ── */}
+      {game.status === 'paused' && (
+        <div className="fixed inset-0 z-[1500] flex flex-col items-center justify-center" style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(6px)' }}>
+          <div className="text-center px-8">
+            <div className="text-6xl mb-4 leading-none">⏸️</div>
+            <p className="font-black text-2xl text-white tracking-widest uppercase mb-2">{t('play_paused')}</p>
+            <p className="text-gray-400 text-sm tracking-wide">{t('play_pausedWaiting')}</p>
+            {isAdmin && (
+              <button
+                onClick={handleAdminPause}
+                className="mt-6 text-white font-semibold px-8 py-3 rounded-xl transition-colors tracking-widest uppercase text-sm"
+                style={{ background: 'linear-gradient(135deg,#92400e,#d97706)', border: '1px solid #f59e0b' }}
+              >
+                {t('play_resume')}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── PHASE TRANSITION MODAL ── */}
       {phaseModal && (
         <div
@@ -746,9 +766,14 @@ export default function PlayPage() {
                 </button>
                 {showTeamEditor && (
                   <div className="flex flex-col gap-2">
-                    {players.map((p) => (
+                    {players.map((p) => {
+                      const isOnline = !!p.last_seen_at && (Date.now() - new Date(p.last_seen_at).getTime()) < 60_000
+                      return (
                       <div key={p.id} className="flex items-center justify-between rounded-xl px-3 py-2" style={{ background: '#0d1018', border: '1px solid #1a2540' }}>
-                        <span className="text-white text-sm font-medium truncate max-w-[100px]">{p.user_name}</span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-green-400' : 'bg-gray-600'}`} title={isOnline ? t('play_playerOnline') : t('play_playerOffline')} />
+                          <span className="text-white text-sm font-medium truncate max-w-[90px]">{p.user_name}</span>
+                        </div>
                         <div className="flex gap-1">
                           {([['fugitive', t('play_roleFugitive')], ['hunter', t('play_roleHunter')], ['admin', t('play_roleAdmin')]] as [PlayerRole, string][]).map(([role, label]) => (
                             <button
@@ -767,7 +792,7 @@ export default function PlayPage() {
                           ))}
                         </div>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 )}
               </div>

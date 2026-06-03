@@ -131,9 +131,11 @@ export default function EndPage() {
           <div className="font-black tracking-widest uppercase" style={{ fontSize: '2.6rem', lineHeight: 1, textShadow: '0 2px 20px rgba(0,0,0,0.9)' }}>
             {title}
           </div>
-          <div className="font-black tracking-widest uppercase" style={{ fontSize: '3.4rem', lineHeight: 1, color: accent, textShadow: `0 0 40px ${accent}66` }}>
-            {t('end_win')}
-          </div>
+          {(fugitiveWon || huntersWon) && (
+            <div className="font-black tracking-widest uppercase" style={{ fontSize: '3.4rem', lineHeight: 1, color: accent, textShadow: `0 0 40px ${accent}66` }}>
+              {t('end_win')}
+            </div>
+          )}
         </div>
 
         <p className="relative z-10 mt-3 tracking-widest uppercase" style={{ fontSize: '0.65rem', color: '#9ca3af' }}>
@@ -147,7 +149,7 @@ export default function EndPage() {
         <div className="grid grid-cols-3 rounded-2xl overflow-hidden" style={{ background: '#0d1120', border: `1px solid ${accentDim}55` }}>
           {fugitiveWon && <>
             <StatCell icon={<TimerSVG c={accent}/>} label={t('end_survivedTime')} value={`${String(game.duration_minutes).padStart(2,'0')}:00`} color={accent} />
-            <StatCell icon={<RunnerSVG c={accent}/>} label={t('end_evadedHunters')} value={`${hunters.length} / ${hunters.length}`} color={accent} bordered />
+            <StatCell icon={<RunnerSVG c={accent}/>} label={t('end_evadedHunters')} value={`${hunters.length}`} color={accent} bordered />
             <StatCell icon={<XpSVG c={accent}/>} label={t('end_xpEarned')} value={`+${xp}`} color={accent} />
           </>}
           {huntersWon && <>
@@ -155,33 +157,38 @@ export default function EndPage() {
             <StatCell icon={<TimerSVG c={accent}/>} label={t('end_timeRemaining')} value={timeLeft} color={accent} bordered />
             <StatCell icon={<TrophySVG c={accent}/>} label={t('end_xpEarned')} value={`+${xp}`} color={accent} />
           </>}
-          {!fugitiveWon && !huntersWon && (
-            <div className="col-span-3 py-5 text-center text-sm" style={{ color: '#6b7280' }}>{t('end_noWinner')}</div>
-          )}
+          {!fugitiveWon && !huntersWon && <>
+            <StatCell icon={<TimerSVG c={accent}/>} label={t('end_timePlayed')} value={`${String(game.duration_minutes).padStart(2,'0')}:00`} color={accent} />
+            <StatCell icon={<RunnerSVG c={accent}/>} label={t('end_runnersTitle')} value={`${fugitives.length}`} color={accent} bordered />
+            <StatCell icon={<CrosshairSVG c={accent}/>} label={t('end_huntersTitle')} value={`${hunters.length}`} color={accent} />
+          </>}
         </div>
 
-        {/* ── LEADERBOARD ── */}
-        {(fugitiveWon || huntersWon) && (
-          <div className="rounded-2xl overflow-hidden" style={{ background: '#0d1120', border: `1px solid ${accentDim}44` }}>
-            <div className="px-4 py-3" style={{ borderBottom: `1px solid ${accentDim}55` }}>
-              <span className="font-black tracking-widest text-xs uppercase" style={{ color: accent }}>
-                {fugitiveWon ? t('end_topRunners') : t('end_bestHunters')}
-              </span>
+        {/* ── LEADERBOARD — always shown ── */}
+        <div className="rounded-2xl overflow-hidden" style={{ background: '#0d1120', border: `1px solid ${accentDim}44` }}>
+          {runnerBoard.length > 0 && <>
+            <div className="px-4 py-2.5" style={{ borderBottom: '1px solid #1a2540' }}>
+              <span className="font-black tracking-widest text-xs uppercase" style={{ color: '#3b82f6' }}>{t('end_topRunners')}</span>
             </div>
-            {fugitiveWon && runnerBoard.map((p, i) => (
+            {runnerBoard.map((p, i) => (
               <LeaderRow
-                key={p.id} rank={i+1} name={p.user_name} accent={accent}
+                key={p.id} rank={i+1} name={p.user_name} accent='#3b82f6'
                 stat={`${((distByPlayer.get(p.id)??0)/1000).toFixed(2)} ${t('end_km')}`}
               />
             ))}
-            {huntersWon && hunterBoard.map((p, i) => (
+          </>}
+          {hunterBoard.length > 0 && <>
+            <div className="px-4 py-2.5" style={{ borderBottom: '1px solid #1a2540', borderTop: runnerBoard.length > 0 ? '1px solid #1a2540' : undefined }}>
+              <span className="font-black tracking-widest text-xs uppercase" style={{ color: '#ef4444' }}>{t('end_bestHunters')}</span>
+            </div>
+            {hunterBoard.map((p, i) => (
               <LeaderRow
-                key={p.id} rank={i+1} name={p.user_name} accent={accent}
-                stat={`${capsByHunter.get(p.id)??0} ${t('end_captured')}`}
+                key={p.id} rank={i+1} name={p.user_name} accent='#ef4444'
+                stat={capsByHunter.get(p.id) ? `${capsByHunter.get(p.id)} ${t('end_captured')}` : `${((distByPlayer.get(p.id)??0)/1000).toFixed(2)} ${t('end_km')}`}
               />
             ))}
-          </div>
-        )}
+          </>}
+        </div>
 
         {/* ── BUTTONS ── */}
         <div className="flex gap-3 mt-1">

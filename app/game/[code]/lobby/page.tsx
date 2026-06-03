@@ -199,22 +199,26 @@ export default function LobbyPage() {
 
         {isHost && (
           <div className="flex flex-col gap-3">
-            {!hasFugitive && (
-              <p className="text-center text-orange-400 text-sm">{t('lobby_needFugitive')}</p>
-            )}
+            <div className="rounded-xl px-4 py-3 flex flex-col gap-2" style={{ background: '#0d1018', border: '1px solid #1a2540' }}>
+              <div className={`flex items-center gap-2.5 text-sm ${hasFugitive ? 'text-green-400' : 'text-orange-400 animate-pulse'}`}>
+                <span className="font-black w-4 text-center">{hasFugitive ? '✓' : '○'}</span>
+                <span>{hasFugitive ? t('lobby_reqFugitiveOk') : t('lobby_reqFugitive')}</span>
+              </div>
+              <div className={`flex items-center gap-2.5 text-sm ${players.length >= 2 ? 'text-green-400' : 'text-gray-500'}`}>
+                <span className="font-black w-4 text-center">{players.length >= 2 ? '✓' : '○'}</span>
+                <span>{players.length >= 2 ? t('lobby_reqMinPlayersOk', { n: players.length }) : t('lobby_reqMinPlayers', { n: players.length })}</span>
+              </div>
+            </div>
             <Button
               size="xl"
               loading={starting}
               disabled={!hasFugitive || players.length < 2}
               onClick={handleStart}
               className="w-full"
-              style={{ background: 'linear-gradient(135deg, #6b0000, #b91c1c, #991b1b)', border: '1px solid #ef4444', boxShadow: '0 0 24px rgba(239,68,68,0.35)' }}
+              style={{ background: hasFugitive && players.length >= 2 ? 'linear-gradient(135deg, #6b0000, #b91c1c, #991b1b)' : '#1a1a1a', border: hasFugitive && players.length >= 2 ? '1px solid #ef4444' : '1px solid #374151', boxShadow: hasFugitive && players.length >= 2 ? '0 0 24px rgba(239,68,68,0.35)' : 'none' }}
             >
               {t('lobby_startGame')}
             </Button>
-            {players.length < 2 && (
-              <p className="text-center text-gray-600 text-xs tracking-widest uppercase">{t('lobby_waitingPlayers')}</p>
-            )}
           </div>
         )}
 
