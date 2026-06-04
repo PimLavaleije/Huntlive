@@ -4,7 +4,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 
 export const metadata: Metadata = {
   title: "Chase Zone — Real-Life GPS Chase Game",
-  description: "Multiplayer GPS jachtspel: één voortvluchtige, meerdere jagers. Wie wint?",
+  description: "Real-life multiplayer GPS chase game: one fugitive, multiple hunters. Who wins?",
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Chase Zone" },
 };

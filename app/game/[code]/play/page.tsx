@@ -578,7 +578,9 @@ export default function PlayPage() {
           <div className="backdrop-blur-sm rounded-lg px-2 py-1" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid #1a2540' }}>
             <LocationStatus accuracy={accuracy} error={geoError} loading={geoLoading} />
             {accuracy === 'poor' && !geoError && (
-              <p className="text-red-300 text-xs mt-0.5 leading-tight">{t('gps_weakHint')}</p>
+              <p className="text-red-300 text-xs mt-0.5 leading-tight">
+                {position?.accuracy ? `~${Math.round(position.accuracy)}m — ` : ''}{t('gps_weakHint')}
+              </p>
             )}
           </div>
         </div>
