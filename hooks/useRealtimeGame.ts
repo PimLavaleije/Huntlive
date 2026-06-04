@@ -27,7 +27,7 @@ export function useRealtimeGame(gameCode: string, playerId: string | null): UseR
       .select('*')
       .eq('code', gameCode.toUpperCase())
       .single()
-    if (error) { setError('Spel niet gevonden'); return }
+    if (error) { setLoading(false); return }
     setGame(data)
   }, [gameCode])
 
@@ -68,12 +68,14 @@ export function useRealtimeGame(gameCode: string, playerId: string | null): UseR
     })
   }, [fetchGame])
 
-  // Fetch players + location when game id is available
+  // Fetch players + location once when game.id first becomes available.
+  // Ongoing updates come from the realtime subscription below.
   useEffect(() => {
-    if (!game) return
+    if (!game?.id) return
     fetchPlayers(game.id)
     fetchFugitiveLocation(game.id)
-  }, [game, fetchPlayers, fetchFugitiveLocation])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.id])
 
   // Realtime subscriptions — depend only on game.id so the channel isn't torn
   // down and rebuilt on every game-state update (which creates brief gaps where

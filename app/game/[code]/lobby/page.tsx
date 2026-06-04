@@ -99,7 +99,7 @@ export default function LobbyPage() {
   }
 
   if (loading) return <LoadingScreen label={t('lobby_loading')} />
-  if (error || !game) return <ErrorScreen message={error ?? t('lobby_notFound')} backLabel={t('backToHome')} />
+  if (error || !game) return <ErrorScreen message={t('lobby_notFound')} backLabel={t('backToHome')} />
 
   return (
     <main className="min-h-svh text-white flex flex-col" style={{ background: '#000000' }}>
