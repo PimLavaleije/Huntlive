@@ -7,15 +7,16 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { LangToggle } from '@/components/LangToggle'
+import type { TranslationKey } from '@/lib/i18n'
 
 type Step = 'settings' | 'identity'
 
-const PRESETS = [
-  { label: 'Makkelijk', duration_minutes: 15,  headstart_minutes: 2,  location_interval_minutes: 2  },
-  { label: 'Normaal',   duration_minutes: 60,  headstart_minutes: 5,  location_interval_minutes: 5  },
-  { label: 'Moeilijk',  duration_minutes: 120, headstart_minutes: 10, location_interval_minutes: 10 },
-  { label: 'Locht',     duration_minutes: 240, headstart_minutes: 20, location_interval_minutes: 10 },
-] as const
+const PRESETS: Array<{ label: TranslationKey; duration_minutes: number; headstart_minutes: number; location_interval_minutes: number }> = [
+  { label: 'create_presetEasy',     duration_minutes: 15,  headstart_minutes: 2,  location_interval_minutes: 2  },
+  { label: 'create_presetNormal',   duration_minutes: 60,  headstart_minutes: 5,  location_interval_minutes: 5  },
+  { label: 'create_presetHard',     duration_minutes: 120, headstart_minutes: 10, location_interval_minutes: 10 },
+  { label: 'create_presetMarathon', duration_minutes: 240, headstart_minutes: 20, location_interval_minutes: 10 },
+]
 
 export default function CreateGamePage() {
   const router = useRouter()
@@ -58,7 +59,7 @@ export default function CreateGamePage() {
 
       const { data: game, error: gameErr } = await supabase.from('games').insert({
         code,
-        name: settings.name || `Spel ${code}`,
+        name: settings.name || t('create_defaultGameName', { code }),
         status: 'waiting',
         created_by: hostName.trim(),
         duration_minutes: settings.duration_minutes,
@@ -132,7 +133,7 @@ export default function CreateGamePage() {
                     ? { background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', color: '#fff' }
                     : { background: '#0d1018', color: '#6b7280' }}
                 >
-                  {p.label}
+                  {t(p.label)}
                 </button>
               ))}
             </div>
@@ -233,6 +234,7 @@ export default function CreateGamePage() {
                 placeholder={t('create_yourNamePlaceholder')}
                 value={hostName}
                 onChange={(e) => { setHostName(e.target.value); setError('') }}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
                 autoFocus
               />
             </Card>

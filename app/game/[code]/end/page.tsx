@@ -83,6 +83,17 @@ export default function EndPage() {
   const runnerBoard = [...fugitives].sort((a,b) => (distByPlayer.get(b.id)??0) - (distByPlayer.get(a.id)??0))
   const hunterBoard = [...hunters ].sort((a,b) => (capsByHunter.get(b.id)??0) - (capsByHunter.get(a.id)??0))
 
+  const handleShare = async () => {
+    if (!('share' in navigator)) return
+    const url = window.location.origin
+    const text = fugitiveWon
+      ? t('end_shareResultFugitive', { dur: String(game.duration_minutes), url })
+      : huntersWon
+      ? t('end_shareResultHunters', { url })
+      : t('end_shareResultDraw', { url })
+    await navigator.share({ title: 'Chase Zone', text }).catch(() => {})
+  }
+
   const handleRematch = () => {
     if (!game) return
     sessionStorage.setItem('rematch_settings', JSON.stringify({
@@ -191,7 +202,17 @@ export default function EndPage() {
         </div>
 
         {/* ── BUTTONS ── */}
-        <div className="flex gap-3 mt-1">
+        <div className="flex flex-col gap-2 mt-1">
+          {typeof navigator !== 'undefined' && 'share' in navigator && (
+            <button
+              onClick={handleShare}
+              className="w-full rounded-xl font-black tracking-widest text-white transition-transform active:scale-95"
+              style={{ padding: '0.75rem', fontSize: '0.75rem', background: '#111827', border: '1px solid #374151' }}
+            >
+              {t('end_share')}
+            </button>
+          )}
+          <div className="flex gap-3">
           <button
             onClick={handleRematch}
             className="flex-1 flex items-center justify-between rounded-xl font-black tracking-widest text-white transition-transform active:scale-95"
@@ -214,6 +235,7 @@ export default function EndPage() {
           >
             {t('end_backToMenu')}
           </button>
+          </div>
         </div>
       </div>
     </main>

@@ -41,6 +41,11 @@ const nl = {
   home_codeFormatError: 'Voer een geldige 6-teken code in',
 
   // Create page
+  create_presetEasy: 'Makkelijk',
+  create_presetNormal: 'Normaal',
+  create_presetHard: 'Moeilijk',
+  create_presetMarathon: 'Locht',
+  create_defaultGameName: 'Spel {code}',
   create_title: 'Nieuw spel aanmaken',
   create_settings: 'Spel-instellingen',
   create_gameName: 'Spelnaam (optioneel)',
@@ -84,6 +89,7 @@ const nl = {
   join_alreadyFinished: 'Dit spel is al afgelopen',
   join_nameTaken: 'Deze naam is al in gebruik in dit spel',
   join_failed: 'Joinen mislukt',
+  join_gameActiveWarn: '⚠️ Dit spel is al actief — je join midden in het spel',
 
   // Lobby page
   lobby_loading: 'Lobby laden...',
@@ -202,6 +208,10 @@ const nl = {
   end_totalPlayers: 'SPELERS',
   end_newGame: 'NIEUW SPEL',
   end_backToMenu: 'TERUG NAAR MENU',
+  end_share: '📤 Delen',
+  end_shareResultFugitive: '🏃 De boef ontsnapte! {dur} min op de vlucht. Speel Chase Zone: {url}',
+  end_shareResultHunters: '🎯 De jagers pakten de boef! Speel Chase Zone: {url}',
+  end_shareResultDraw: '🏁 Spel beëindigd zonder winnaar. Speel Chase Zone: {url}',
 
   // CaptureButton
   capture_caught: '🎉 Gevangen!',
@@ -267,6 +277,11 @@ const en: Record<keyof typeof nl, string> = {
   home_codeFormatError: 'Enter a valid 6-character code',
 
   // Create page
+  create_presetEasy: 'Easy',
+  create_presetNormal: 'Normal',
+  create_presetHard: 'Hard',
+  create_presetMarathon: 'Marathon',
+  create_defaultGameName: 'Game {code}',
   create_title: 'Create New Game',
   create_settings: 'Game Settings',
   create_gameName: 'Game Name (optional)',
@@ -310,6 +325,7 @@ const en: Record<keyof typeof nl, string> = {
   join_alreadyFinished: 'This game has already ended',
   join_nameTaken: 'This name is already taken in this game',
   join_failed: 'Failed to join',
+  join_gameActiveWarn: '⚠️ This game is already active — you\'re joining mid-game',
 
   // Lobby page
   lobby_loading: 'Loading lobby...',
@@ -428,6 +444,10 @@ const en: Record<keyof typeof nl, string> = {
   end_totalPlayers: 'PLAYERS',
   end_newGame: 'NEW GAME',
   end_backToMenu: 'BACK TO MENU',
+  end_share: '📤 Share',
+  end_shareResultFugitive: '🏃 The fugitive escaped! {dur} min on the run. Play Chase Zone: {url}',
+  end_shareResultHunters: '🎯 The hunters caught the fugitive! Play Chase Zone: {url}',
+  end_shareResultDraw: '🏁 Game ended without a winner. Play Chase Zone: {url}',
 
   // CaptureButton
   capture_caught: '🎉 Caught!',

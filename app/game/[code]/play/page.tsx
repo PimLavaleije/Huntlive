@@ -681,9 +681,14 @@ export default function PlayPage() {
         {/* ── PANEL TOGGLE BUTTON ── */}
         <button
           onClick={() => setPanelOpen((o) => !o)}
-          className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[500] backdrop-blur-sm text-white rounded-full px-5 py-2 text-sm font-medium flex items-center gap-2 shadow-lg transition-colors"
-          style={{ background: 'rgba(0,0,0,0.9)', border: '1px solid #1a2540' }}
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[500] backdrop-blur-sm text-white rounded-full px-5 py-2 text-sm font-medium flex items-center gap-2 shadow-lg transition-all"
+          style={{
+            background: 'rgba(0,0,0,0.9)',
+            border: withinCaptureRadius && !panelOpen ? '1px solid #ef4444' : '1px solid #1a2540',
+            boxShadow: withinCaptureRadius && !panelOpen ? '0 0 14px rgba(239,68,68,0.5)' : undefined,
+          }}
         >
+          {withinCaptureRadius && !panelOpen && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
           {panelOpen ? t('play_hideActions') : t('play_showActions')}
         </button>
       </div>

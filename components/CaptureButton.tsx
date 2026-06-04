@@ -69,7 +69,11 @@ export function CaptureButton({ onCapture, withinRadius, distanceMeters, capture
   }
 
   return (
-    <Button variant="danger" size="xl" loading={state === 'loading'} onClick={handleClick} className={cn('w-full', className)}>
+    <Button
+      variant="danger" size="xl" loading={state === 'loading'} onClick={handleClick}
+      className={cn('w-full', className)}
+      style={withinRadius ? { boxShadow: '0 0 24px rgba(239,68,68,0.7), 0 0 8px rgba(239,68,68,0.4)' } : undefined}
+    >
       {t('capture_btn')}
     </Button>
   )
