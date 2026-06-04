@@ -334,11 +334,19 @@ export default function PlayPage() {
       })
   }, [game?.id, playerId, isAdmin, isFugitive, players.length])
 
-  // Warn fugitive 30s before share
+  // Warn fugitive 30s before ping
   useEffect(() => {
     if (!isFugitive || !game || game.status !== 'active') return
     if (nextUpdateLeft === 30) showNotification(t('play_notifWarning30s'), 'warn')
   }, [nextUpdateLeft, isFugitive, game, showNotification])
+
+  // Time milestone warnings for all players
+  useEffect(() => {
+    if (!game || game.status !== 'active') return
+    if (gameLeft === 300) showNotification(isFugitive ? t('play_notifWarning5minFugitive') : t('play_notifWarning5minHunter'), 'warn')
+    if (gameLeft === 60)  showNotification(isFugitive ? t('play_notifWarning1minFugitive') : t('play_notifWarning1minHunter'), 'warn')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameLeft])
 
   // Heartbeat
   useEffect(() => {
