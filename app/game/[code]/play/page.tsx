@@ -54,7 +54,7 @@ export default function PlayPage() {
     return () => cleanupWakeLock()
   }, [code, router])
 
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const { game, players, latestFugitiveLocation, locationHistory } = useRealtimeGame(code, playerId)
   const { position, error: geoError, loading: geoLoading, accuracy } = useGeolocation(!!playerId)
   const { headstartLeft, gameLeft, nextUpdateLeft } = useGameTimer(game)
@@ -440,7 +440,7 @@ export default function PlayPage() {
       })
     } else if (isHunter) {
       if (latestFugitiveLocation) {
-        result.push({ id: 'fugitive_live', lat: latestFugitiveLocation.latitude, lng: latestFugitiveLocation.longitude, type: 'fugitive' as const, label: t('play_fugitiveLabel', { time: formatRelativeTime(latestFugitiveLocation.created_at) }) })
+        result.push({ id: 'fugitive_live', lat: latestFugitiveLocation.latitude, lng: latestFugitiveLocation.longitude, type: 'fugitive' as const, label: t('play_fugitiveLabel', { time: formatRelativeTime(latestFugitiveLocation.created_at, lang) }) })
       } else if (fugitiveSnapshot) {
         const fp = players.find((p) => p.id === fugitiveSnapshot.playerId)
         result.push({ id: 'fugitive_snap', lat: fugitiveSnapshot.lat, lng: fugitiveSnapshot.lng, type: 'fugitive' as const, label: t('play_fugitiveStartLabel', { name: fp?.user_name ?? t('play_hunterLabel') }) })
@@ -651,7 +651,7 @@ export default function PlayPage() {
                   <>
                     <div className="flex flex-col flex-1 min-w-0">
                       <span className="text-xs font-bold text-red-500 uppercase tracking-widest">📍 {t('play_fugitiveSeen')}</span>
-                      <span className="text-white text-sm font-medium">{formatRelativeTime(latestFugitiveLocation.created_at)}</span>
+                      <span className="text-white text-sm font-medium">{formatRelativeTime(latestFugitiveLocation.created_at, lang)}</span>
                     </div>
                     {distanceToFugitive !== null && (
                       <span className={`font-mono font-black text-3xl tabular-nums leading-none shrink-0 ${withinCaptureRadius ? 'text-green-400' : 'text-red-300'}`}>

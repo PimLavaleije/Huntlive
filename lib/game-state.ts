@@ -1,25 +1,6 @@
-import type { Game, GameStatus } from '@/types'
-
-export interface GamePhaseInfo {
-  label: string
-  description: string
-  color: string
-}
-
-export function getPhaseInfo(status: GameStatus): GamePhaseInfo {
-  switch (status) {
-    case 'waiting':
-      return { label: 'Wachten', description: 'Wacht op de spelleider om te starten', color: 'text-gray-400' }
-    case 'headstart':
-      return { label: 'Voorsprong', description: 'De voortvluchtige pakt voorsprong!', color: 'text-orange-400' }
-    case 'active':
-      return { label: 'Jacht actief', description: 'De jacht is begonnen!', color: 'text-red-400' }
-    case 'paused':
-      return { label: 'Gepauzeerd', description: 'Het spel is gepauzeerd door de admin', color: 'text-yellow-400' }
-    case 'finished':
-      return { label: 'Afgelopen', description: 'Het spel is afgelopen', color: 'text-green-400' }
-  }
-}
+import type { Game } from '@/types'
+import { tr } from './i18n'
+import type { Lang } from './i18n'
 
 // Seconds remaining in headstart phase
 export function getHeadstartSecondsLeft(game: Game): number {
@@ -59,10 +40,10 @@ export function formatTime(seconds: number): string {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
 }
 
-// Format a timestamp to a relative time string (e.g., "3 minuten geleden")
-export function formatRelativeTime(isoString: string): string {
+// Format a timestamp to a relative time string (e.g., "3m ago")
+export function formatRelativeTime(isoString: string, lang: Lang = 'nl'): string {
   const diff = Math.round((Date.now() - new Date(isoString).getTime()) / 1000)
-  if (diff < 60) return `${diff}s geleden`
-  if (diff < 3600) return `${Math.floor(diff / 60)}m geleden`
-  return `${Math.floor(diff / 3600)}u geleden`
+  if (diff < 60) return tr(lang, 'play_timeAgoSeconds', { n: diff })
+  if (diff < 3600) return tr(lang, 'play_timeAgoMinutes', { n: Math.floor(diff / 60) })
+  return tr(lang, 'play_timeAgoHours', { n: Math.floor(diff / 3600) })
 }
