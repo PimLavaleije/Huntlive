@@ -31,12 +31,14 @@ const nl = {
   gps_excellent: 'GPS: Uitstekend',
   gps_fair: 'GPS: Redelijk',
   gps_weak: 'GPS: Zwak signaal',
+  gps_weakHint: 'Ga buiten staan voor beter signaal',
 
   // Home page
   home_createGame: 'NIEUW SPEL AANMAKEN',
   home_orJoin: 'Of join een bestaand spel',
   home_codePlaceholder: 'GAMECODE (BIJV. AB12CD)',
   home_codeError: 'Voer een gamecode in',
+  home_codeFormatError: 'Voer een geldige 6-teken code in',
 
   // Create page
   create_title: 'Nieuw spel aanmaken',
@@ -173,6 +175,9 @@ const nl = {
   play_captureTooFarMsg: 'Te ver — {dist} van boef. Kom binnen {radius}m',
   play_playerOnline: 'online',
   play_playerOffline: 'offline',
+  play_captureNoPos: 'Locatie niet beschikbaar',
+  play_captureNoFugitive: 'Geen boef gevonden',
+  play_captureFugitiveNoLoc: 'Locatie van boef niet beschikbaar',
 
   // End page
   end_runnersTitle: 'RUNNERS',
@@ -252,12 +257,14 @@ const en: Record<keyof typeof nl, string> = {
   gps_excellent: 'GPS: Excellent',
   gps_fair: 'GPS: Fair',
   gps_weak: 'GPS: Weak signal',
+  gps_weakHint: 'Go outside for better signal',
 
   // Home page
   home_createGame: 'CREATE NEW GAME',
   home_orJoin: 'Or join an existing game',
   home_codePlaceholder: 'GAME CODE (E.G. AB12CD)',
   home_codeError: 'Enter a game code',
+  home_codeFormatError: 'Enter a valid 6-character code',
 
   // Create page
   create_title: 'Create New Game',
@@ -394,6 +401,9 @@ const en: Record<keyof typeof nl, string> = {
   play_captureTooFarMsg: 'Too far — {dist} from fugitive. Get within {radius}m',
   play_playerOnline: 'online',
   play_playerOffline: 'offline',
+  play_captureNoPos: 'Location unavailable',
+  play_captureNoFugitive: 'No fugitive found',
+  play_captureFugitiveNoLoc: "Fugitive's location not available",
 
   // End page
   end_runnersTitle: 'RUNNERS',

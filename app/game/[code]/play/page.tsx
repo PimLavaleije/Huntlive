@@ -33,6 +33,7 @@ export default function PlayPage() {
   const [teamLocations, setTeamLocations] = useState<Map<string, { lat: number; lng: number }>>(new Map())
   const [fugitiveSnapshot, setFugitiveSnapshot] = useState<{ lat: number; lng: number; playerId: string } | null>(null)
   const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const notificationCountRef = useRef(0)
   const lastSnapshotRef = useRef<number>(0)
   const prevGameStatusRef = useRef<string | null>(null)
   const playersRef = useRef<Player[]>([])
@@ -69,6 +70,7 @@ export default function PlayPage() {
   isFugitiveSaveRef.current = isFugitive
 
   const showNotification = useCallback((msg: string, type: 'info' | 'ping' | 'warn' = 'info') => {
+    notificationCountRef.current += 1
     setNotification({ msg, type })
     if ('vibrate' in navigator) {
       if (type === 'ping') navigator.vibrate([150, 80, 150, 80, 400])
@@ -367,10 +369,10 @@ export default function PlayPage() {
   }, [game?.id, playerId, isFugitive])
 
   const handleCapture = async () => {
-    if (!position || !game || !playerId) return { success: false, message: 'Locatie niet beschikbaar' }
+    if (!position || !game || !playerId) return { success: false, message: t('play_captureNoPos') }
 
     const fugitivePlayer = players.find((p) => p.role === 'fugitive')
-    if (!fugitivePlayer) return { success: false, message: 'Geen boef gevonden' }
+    if (!fugitivePlayer) return { success: false, message: t('play_captureNoFugitive') }
 
     const { data: fugitiveLocations } = await supabase
       .from('locations')
@@ -381,7 +383,7 @@ export default function PlayPage() {
       .limit(1)
 
     const fugitiveLoc = fugitiveLocations?.[0]
-    if (!fugitiveLoc) return { success: false, message: 'Locatie van boef niet beschikbaar' }
+    if (!fugitiveLoc) return { success: false, message: t('play_captureFugitiveNoLoc') }
 
     const distance = haversineDistance(position.latitude, position.longitude, fugitiveLoc.latitude, fugitiveLoc.longitude)
 
@@ -508,6 +510,8 @@ export default function PlayPage() {
 
   return (
     // Full viewport layout — map fills everything
+    <>
+    <style>{`@keyframes toast-in{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translate(-50%,0)}}.toast-slide{animation:toast-in 0.25s ease-out}`}</style>
     <div className="fixed inset-0 flex flex-col" style={{ background: '#000000' }}>
 
       {/* ── MAP (fills all remaining space) ── */}
@@ -552,7 +556,7 @@ export default function PlayPage() {
 
         {/* ── NOTIFICATION TOAST ── */}
         {notification && (
-          <div className={`absolute top-20 left-1/2 -translate-x-1/2 z-[500] text-white text-sm font-semibold px-4 py-3 rounded-2xl shadow-xl backdrop-blur-sm max-w-[85vw] text-center pointer-events-none ${
+          <div key={notificationCountRef.current} className={`toast-slide absolute top-20 left-1/2 -translate-x-1/2 z-[500] text-white text-sm font-semibold px-4 py-3 rounded-2xl shadow-xl backdrop-blur-sm max-w-[85vw] text-center pointer-events-none ${
             notification.type === 'ping' ? 'bg-red-800/95 border border-red-500' :
             notification.type === 'warn' ? 'bg-orange-800/95 border border-orange-500' :
             'bg-gray-900/95 border border-gray-700'
@@ -565,6 +569,9 @@ export default function PlayPage() {
         <div className="absolute z-[500] pointer-events-none" style={{ top: '96px', left: '12px' }}>
           <div className="backdrop-blur-sm rounded-lg px-2 py-1" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid #1a2540' }}>
             <LocationStatus accuracy={accuracy} error={geoError} loading={geoLoading} />
+            {accuracy === 'poor' && !geoError && (
+              <p className="text-red-300 text-xs mt-0.5 leading-tight">{t('gps_weakHint')}</p>
+            )}
           </div>
         </div>
 
@@ -801,6 +808,7 @@ export default function PlayPage() {
         </div>
       )}
     </div>
+    </>
   )
 }
 

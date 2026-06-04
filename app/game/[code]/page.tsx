@@ -22,6 +22,9 @@ export default function JoinGamePage() {
   const [previewing, setPreviewing] = useState(false)
 
   useEffect(() => {
+    const existing = sessionStorage.getItem(`player_${code}`)
+    if (existing) { router.replace(`/game/${code}/lobby`); return }
+
     const loadPreview = async () => {
       setPreviewing(true)
       const game = await getGameByCode(code)

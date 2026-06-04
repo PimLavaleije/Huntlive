@@ -10,10 +10,13 @@ export default function HomePage() {
   const { t } = useLanguage()
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
+  const [joining, setJoining] = useState(false)
 
   const handleJoin = () => {
     const trimmed = code.trim().toUpperCase()
     if (!trimmed) { setError(t('home_codeError')); return }
+    if (trimmed.length < 6) { setError(t('home_codeFormatError')); return }
+    setJoining(true)
     router.push(`/game/${trimmed}`)
   }
 
@@ -93,7 +96,8 @@ export default function HomePage() {
           </div>
           <button
             onClick={handleJoin}
-            className="font-black tracking-widest text-white transition-transform active:scale-95"
+            disabled={joining}
+            className="font-black tracking-widest text-white transition-transform active:scale-95 disabled:opacity-60"
             style={{
               background: 'linear-gradient(135deg, #1e3a8a, #2563eb)',
               border: '1px solid #3b82f6',
@@ -103,7 +107,7 @@ export default function HomePage() {
               boxShadow: '0 0 16px rgba(37,99,235,0.4)',
             }}
           >
-            JOIN
+            {joining ? '…' : 'JOIN'}
           </button>
         </div>
         {error && <p className="text-red-400 mt-1.5 ml-1" style={{ fontSize: '0.75rem' }}>{error}</p>}
